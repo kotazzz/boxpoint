@@ -1,0 +1,120 @@
+{% extends 'core/base.html' %}
+
+{% load fontawesome_5 %}
+{% load django_bootstrap5 %}
+
+{% block title %}Box Point - Прием заказов{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+    <h1>{% fontawesome_icon 'truck-loading' 'fas' %} Прием заказов</h1>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+        {% fontawesome_icon 'home' 'fas' %} На главную
+    </a>
+</div>
+<hr>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                {% fontawesome_icon 'box' 'fas' %} Прием нового заказа
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="order_id" class="form-label">ID заказа:</label>
+                        <input type="text" class="form-control" id="order_id" name="order_id" 
+                            required placeholder="Введите ID заказа" autofocus>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <ul class="mb-0">
+                            <li>Заказ будет помещен в первую доступную ячейку</li>
+                            <li>Если у клиента уже есть ячейка, заказ будет помещен в нее</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">
+                            {% fontawesome_icon 'check' 'fas' %} Принять заказ
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                {% fontawesome_icon 'boxes' 'fas' %} Статус ячеек
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="flex-grow-1">
+                        <h5 class="mb-0">Доступные ячейки:</h5>
+                    </div>
+                    <div>
+                        <span class="badge bg-success p-2">{{ available_cell_count }}</span>
+                    </div>
+                </div>
+                
+                {% if available_cell_count > 0 %}
+                <div class="d-flex flex-wrap">
+                    {% for cell in available_cells %}
+                    <div class="me-2 mb-2">
+                        <span class="badge bg-success">{{ cell.number }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-warning mb-0">
+                    <strong>Внимание!</strong> Нет свободных ячеек для приема заказов.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                {% fontawesome_icon 'clipboard-list' 'fas' %} Недавно принятые заказы
+            </div>
+            <div class="card-body">
+                {% if recent_orders %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Наименование</th>
+                                <th>Клиент</th>
+                                <th>Ячейка</th>
+                                <th>Дата приемки</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td><small>{{ order.order_id }}</small></td>
+                                <td>{{ order.name|truncatechars:30 }}</td>
+                                <td>{{ order.customer.name|truncatechars:20 }}</td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ order.storage_cell.number }}</span>
+                                </td>
+                                <td><small>{{ order.received_at|date:"d.m.Y H:i" }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted">Нет недавно принятых заказов</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

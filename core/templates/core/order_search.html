@@ -1,0 +1,153 @@
+{% extends 'core/base.html' %}
+
+{% load fontawesome_5 %}
+{% load django_bootstrap5 %}
+
+{% block title %}Box Point - Поиск заказа{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+    <h1>{% fontawesome_icon 'search' 'fas' %} Поиск заказа</h1>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+        {% fontawesome_icon 'home' 'fas' %} На главную
+    </a>
+</div>
+<hr>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-primary text-white">
+                {% fontawesome_icon 'search' 'fas' %} Поиск по ID заказа
+            </div>
+            <div class="card-body">
+                <form method="get" action="{% url 'order_search' %}">
+                    <div class="form-group mb-4">
+                        <label for="order_id" class="form-label">ID заказа:</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control form-control-lg" id="order_id" name="order_id" 
+                                autofocus required placeholder="Введите ID заказа" value="{{ request.GET.order_id|default:'' }}">
+                            <button type="submit" class="btn btn-primary">
+                                {% fontawesome_icon 'search' 'fas' %} Найти
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        {% if order %}
+            <div class="card border-success">
+                <div class="card-header bg-success text-white">
+                    {% fontawesome_icon 'info-circle' 'fas' %} Информация о заказе
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ order.name }}</h5>
+                    <p class="card-text">{{ order.description }}</p>
+                    
+                    <dl class="row">
+                        <dt class="col-sm-4">ID заказа:</dt>
+                        <dd class="col-sm-8">{{ order.order_id }}</dd>
+                        
+                        <dt class="col-sm-4">Клиент:</dt>
+                        <dd class="col-sm-8">{{ order.customer.name }}</dd>
+                        
+                        <dt class="col-sm-4">Размер:</dt>
+                        <dd class="col-sm-8">{{ order.size|default:"Не указан" }}</dd>
+                        
+                        <dt class="col-sm-4">Цвет:</dt>
+                        <dd class="col-sm-8">{{ order.color|default:"Не указан" }}</dd>
+                        
+                        <dt class="col-sm-4">Стоимость:</dt>
+                        <dd class="col-sm-8">{{ order.price }} ₽</dd>
+                        
+                        <dt class="col-sm-4">Статус оплаты:</dt>
+                        <dd class="col-sm-8">
+                            {% if order.payment_status == 'prepaid' %}
+                            <span class="badge bg-success">Предоплачен</span>
+                            {% else %}
+                            <span class="badge bg-warning text-dark">Постоплата</span>
+                            {% endif %}
+                        </dd>
+                        
+                        <dt class="col-sm-4">Статус:</dt>
+                        <dd class="col-sm-8">
+                            {% if order.status == 'pending' %}
+                            <span class="badge bg-warning text-dark">Ожидает получения</span>
+                            {% elif order.status == 'delivered' %}
+                            <span class="badge bg-success">Выдан</span>
+                            {% elif order.status == 'returned' %}
+                            <span class="badge bg-danger">Возвращен</span>
+                            {% elif order.status == 'cancelled' %}
+                            <span class="badge bg-secondary">Аннулирован</span>
+                            {% endif %}
+                        </dd>
+                        
+                        {% if order.storage_cell %}
+                        <dt class="col-sm-4">Ячейка:</dt>
+                        <dd class="col-sm-8"><span class="badge bg-secondary">{{ order.storage_cell.number }}</span></dd>
+                        {% endif %}
+                        
+                        {% if order.is_under_inspection %}
+                        <dt class="col-sm-4">Проверка:</dt>
+                        <dd class="col-sm-8"><span class="badge bg-warning text-dark">На проверке</span></dd>
+                        {% endif %}
+                        
+                        {% if order.created_at %}
+                        <dt class="col-sm-4">Создан:</dt>
+                        <dd class="col-sm-8">{{ order.created_at|date:"d.m.Y H:i" }}</dd>
+                        {% endif %}
+                        
+                        {% if order.received_at %}
+                        <dt class="col-sm-4">Принят в ПВЗ:</dt>
+                        <dd class="col-sm-8">{{ order.received_at|date:"d.m.Y H:i" }}</dd>
+                        {% endif %}
+                        
+                        {% if order.delivered_at %}
+                        <dt class="col-sm-4">Выдан:</dt>
+                        <dd class="col-sm-8">{{ order.delivered_at|date:"d.m.Y H:i" }}</dd>
+                        {% endif %}
+                        
+                        {% if order.return_info %}
+                        <dt class="col-sm-4">Причина возврата:</dt>
+                        <dd class="col-sm-8">{{ order.return_info.reason.name }}</dd>
+                        
+                        {% if order.return_info.notes %}
+                        <dt class="col-sm-4">Примечания:</dt>
+                        <dd class="col-sm-8">{{ order.return_info.notes }}</dd>
+                        {% endif %}
+                        
+                        <dt class="col-sm-4">Дата возврата:</dt>
+                        <dd class="col-sm-8">{{ order.return_info.created_at|date:"d.m.Y H:i" }}</dd>
+                        {% endif %}
+                    </dl>
+                    
+                    {% if order.status == 'pending' and request.user.is_staff %}
+                    <div class="d-grid gap-2">
+                        <a href="{% url 'pickup_process' pk=order.customer.id %}" class="btn btn-primary">
+                            {% fontawesome_icon 'box-open' 'fas' %} Перейти к выдаче
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        {% elif not_found and request.GET.order_id %}
+            <div class="alert alert-danger" role="alert">
+                <h4 class="alert-heading">{% fontawesome_icon 'exclamation-triangle' 'fas' %} Заказ не найден</h4>
+                <p>Заказ с ID <strong>{{ request.GET.order_id }}</strong> не найден в системе.</p>
+                <hr>
+                <p class="mb-0">Пожалуйста, проверьте правильность введенного ID заказа и попробуйте снова.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Focus on order ID field
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('order_id').focus();
+    });
+</script>
+{% endblock %}

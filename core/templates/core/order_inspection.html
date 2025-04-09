@@ -1,0 +1,77 @@
+{% extends 'core/base.html' %}
+
+{% load fontawesome_5 %}
+{% load django_bootstrap5 %}
+
+{% block title %}Box Point - Проверка заказа{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+    <h1>{% fontawesome_icon 'search' 'fas' %} Проверка заказа</h1>
+    <a href="{% url 'pickup_process' pk=object.customer.id %}" class="btn btn-outline-secondary">
+        {% fontawesome_icon 'arrow-left' 'fas' %} Вернуться к выдаче
+    </a>
+</div>
+<hr>
+
+<div class="row mb-4">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-warning text-dark">
+                {% fontawesome_icon 'exclamation-triangle' 'fas' %} Подтверждение проверки заказа
+            </div>
+            <div class="card-body">
+                <h4 class="mb-4">Вы собираетесь отметить заказ как проверяемый:</h4>
+                
+                <dl class="row">
+                    <dt class="col-sm-3">ID заказа:</dt>
+                    <dd class="col-sm-9">{{ object.order_id }}</dd>
+                    
+                    <dt class="col-sm-3">Наименование:</dt>
+                    <dd class="col-sm-9">{{ object.name }}</dd>
+                    
+                    <dt class="col-sm-3">Описание:</dt>
+                    <dd class="col-sm-9">{{ object.description|default:"Нет описания" }}</dd>
+                    
+                    <dt class="col-sm-3">Размер:</dt>
+                    <dd class="col-sm-9">{{ object.size|default:"Не указан" }}</dd>
+                    
+                    <dt class="col-sm-3">Цвет:</dt>
+                    <dd class="col-sm-9">{{ object.color|default:"Не указан" }}</dd>
+                    
+                    <dt class="col-sm-3">Стоимость:</dt>
+                    <dd class="col-sm-9">{{ object.price }} ₽</dd>
+                    
+                    <dt class="col-sm-3">Статус оплаты:</dt>
+                    <dd class="col-sm-9">
+                        {% if object.payment_status == 'prepaid' %}
+                        <span class="badge bg-success">Предоплата</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">Постоплата</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+                
+                <div class="alert alert-warning">
+                    <strong>Внимание!</strong> После подтверждения проверки вы не сможете отменить это действие.
+                    Заказ будет помечен как проверяемый, и клиент сможет вскрыть упаковку.
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    {% bootstrap_form form %}
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'pickup_process' pk=object.customer.id %}" class="btn btn-secondary">
+                            {% fontawesome_icon 'times' 'fas' %} Отмена
+                        </a>
+                        <button type="submit" class="btn btn-warning">
+                            {% fontawesome_icon 'search' 'fas' %} Подтвердить проверку
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,127 @@
+{% extends 'core/base.html' %}
+
+{% load fontawesome_5 %}
+{% load django_bootstrap5 %}
+
+{% block title %}Box Point - Подтверждение выдачи{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+    <h1>{% fontawesome_icon 'check-circle' 'fas' %} Подтверждение выдачи</h1>
+    <a href="{% url 'pickup_process' pk=object.customer.id %}" class="btn btn-outline-secondary">
+        {% fontawesome_icon 'arrow-left' 'fas' %} Вернуться к списку заказов
+    </a>
+</div>
+<hr>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                {% fontawesome_icon 'box-open' 'fas' %} Сводка по заказам
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h3 class="mb-0">{{ delivered_count }}</h3>
+                                <small class="text-muted">Выдано</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h3 class="mb-0">{{ returned_count }}</h3>
+                                <small class="text-muted">Возвращено</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-light mb-3">
+                            <div class="card-body text-center">
+                                <h3 class="mb-0">{{ pending_count }}</h3>
+                                <small class="text-muted">Не выдано</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                {% fontawesome_icon 'money-bill' 'fas' %} Расчет
+            </div>
+            <div class="card-body">
+                <table class="table">
+                    <tbody>
+                        <tr>
+                            <td>Уже оплачено (предоплата)</td>
+                            <td class="text-end">{{ prepaid_total }} ₽</td>
+                        </tr>
+                        <tr>
+                            <td>К оплате сейчас (постоплата)</td>
+                            <td class="text-end">{% if postpaid_total %}{{ postpaid_total }} ₽{% else %}0 ₽{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <td>К возврату клиенту</td>
+                            <td class="text-end">{% if refund_total %}{{ refund_total }} ₽{% else %}0 ₽{% endif %}</td>
+                        </tr>
+                        <tr class="table-light">
+                            <th>Итого к оплате</th>
+                            <th class="text-end">{% if postpaid_total %}{{ postpaid_total }} ₽{% else %}0 ₽{% endif %}</th>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    {% fontawesome_icon 'shopping-bag' 'fas' %} Упаковка
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input class="form-check-input" type="checkbox" id="include_package" name="include_package" 
+                               {% if object.include_package %}checked{% endif %} value="true">
+                        <label class="form-check-label" for="include_package">
+                            Добавить пакет к заказу
+                        </label>
+                    </div>
+                    <small class="text-muted">Отметьте, если клиент запросил пакет для заказа</small>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    {% fontawesome_icon 'info-circle' 'fas' %} Информация
+                </div>
+                <div class="card-body">
+                    <p>После подтверждения выдачи:</p>
+                    <ul>
+                        <li>Выбранные заказы будут отмечены как выданные</li>
+                        <li>Сессия выдачи будет завершена</li>
+                        <li>Если все заказы клиента обработаны, ячейка хранения будет освобождена</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="d-grid gap-2 mt-4">
+                <button type="submit" class="btn btn-success btn-lg">
+                    {% fontawesome_icon 'check-double' 'fas' %} Завершить выдачу
+                </button>
+                <a href="{% url 'pickup_process' pk=object.customer.id %}" class="btn btn-outline-secondary">
+                    {% fontawesome_icon 'arrow-left' 'fas' %} Вернуться к заказам
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

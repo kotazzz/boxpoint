@@ -1,0 +1,102 @@
+{% extends 'core/base.html' %}
+
+{% load fontawesome_5 %}
+{% load django_bootstrap5 %}
+
+{% block title %}Box Point - Возврат заказа{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+    <h1>{% fontawesome_icon 'ban' 'fas' %} Возврат заказа</h1>
+    <a href="{% url 'pickup_process' pk=object.customer.id %}" class="btn btn-outline-secondary">
+        {% fontawesome_icon 'arrow-left' 'fas' %} Вернуться к выдаче
+    </a>
+</div>
+<hr>
+
+<div class="row mb-4">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                {% fontawesome_icon 'exclamation-triangle' 'fas' %} Возврат заказа
+            </div>
+            <div class="card-body">
+                <h4 class="mb-4">Информация о возвращаемом заказе:</h4>
+                
+                <dl class="row">
+                    <dt class="col-sm-3">ID заказа:</dt>
+                    <dd class="col-sm-9">{{ object.order_id }}</dd>
+                    
+                    <dt class="col-sm-3">Наименование:</dt>
+                    <dd class="col-sm-9">{{ object.name }}</dd>
+                    
+                    <dt class="col-sm-3">Описание:</dt>
+                    <dd class="col-sm-9">{{ object.description|default:"Нет описания" }}</dd>
+                    
+                    <dt class="col-sm-3">Размер:</dt>
+                    <dd class="col-sm-9">{{ object.size|default:"Не указан" }}</dd>
+                    
+                    <dt class="col-sm-3">Цвет:</dt>
+                    <dd class="col-sm-9">{{ object.color|default:"Не указан" }}</dd>
+                    
+                    <dt class="col-sm-3">Стоимость:</dt>
+                    <dd class="col-sm-9">{{ object.price }} ₽</dd>
+                    
+                    <dt class="col-sm-3">Статус оплаты:</dt>
+                    <dd class="col-sm-9">
+                        {% if object.payment_status == 'prepaid' %}
+                        <span class="badge bg-success">Предоплачен</span>
+                        {% else %}
+                        <span class="badge bg-warning text-dark">Постоплата</span>
+                        {% endif %}
+                    </dd>
+
+                    <dt class="col-sm-3">Проверка:</dt>
+                    <dd class="col-sm-9">
+                        {% if object.is_under_inspection %}
+                        <span class="badge bg-warning text-dark">На проверке (упаковка вскрыта)</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Не проверялся</span>
+                        {% endif %}
+                    </dd>
+                </dl>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="reason" class="form-label">Причина возврата:</label>
+                        <select class="form-select" id="reason" name="reason" required>
+                            <option value="">Выберите причину...</option>
+                            {% for reason in reasons %}
+                            <option value="{{ reason.id }}">{{ reason.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Дополнительная информация:</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Дополнительная информация о возврате..."></textarea>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <strong>Внимание!</strong> После подтверждения возврата отменить действие будет невозможно.
+                        {% if object.payment_status == 'prepaid' %}
+                        <p class="mb-0">Сумма {{ object.price }} ₽ будет возвращена клиенту.</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'pickup_process' pk=object.customer.id %}" class="btn btn-secondary">
+                            {% fontawesome_icon 'times' 'fas' %} Отмена
+                        </a>
+                        <button type="submit" class="btn btn-danger">
+                            {% fontawesome_icon 'ban' 'fas' %} Подтвердить возврат
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

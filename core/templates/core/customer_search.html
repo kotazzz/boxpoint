@@ -1,0 +1,66 @@
+{% extends 'core/base.html' %}
+
+{% load fontawesome_5 %}
+{% load django_bootstrap5 %}
+
+{% block title %}Box Point - Поиск клиента{% endblock %}
+
+{% block content %}
+<h1>{% fontawesome_icon 'user-search' 'fas' %} Поиск клиента</h1>
+<p class="lead">Введите ID клиента для начала процесса выдачи заказов</p>
+<hr>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                {% fontawesome_icon 'id-card' 'fas' %} Введите ID клиента
+            </div>
+            <div class="card-body">
+                <form method="get" action="{% url 'get_customer' %}">
+                    <div class="form-group mb-4">
+                        <label for="customer_id" class="form-label">ID клиента:</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control form-control-lg" id="customer_id" name="customer_id" 
+                                autofocus required placeholder="Введите ID клиента">
+                            <button type="submit" class="btn btn-primary">
+                                {% fontawesome_icon 'search' 'fas' %} Найти
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-muted">
+                <small>ID клиента указан в личном кабинете или в SMS-сообщении</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4 justify-content-center">
+    <div class="col-md-6">
+        <div class="d-grid">
+            <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+                {% fontawesome_icon 'arrow-left' 'fas' %} Вернуться на главную
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Focus on customer ID field and submit form on Enter key
+    document.addEventListener('DOMContentLoaded', function() {
+        const customerIdField = document.getElementById('customer_id');
+        customerIdField.focus();
+        
+        customerIdField.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                this.form.submit();
+            }
+        });
+    });
+</script>
+{% endblock %}

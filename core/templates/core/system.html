@@ -1,0 +1,203 @@
+{% extends 'core/base.html' %}
+
+{% load fontawesome_5 %}
+{% load django_bootstrap5 %}
+
+{% block title %}Box Point - Системные настройки{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center">
+    <h1>{% fontawesome_icon 'cogs' 'fas' %} Системные настройки</h1>
+    <a href="{% url 'home' %}" class="btn btn-outline-secondary">
+        {% fontawesome_icon 'home' 'fas' %} На главную
+    </a>
+</div>
+<hr>
+
+<div class="alert alert-warning">
+    <h4 class="alert-heading">{% fontawesome_icon 'exclamation-triangle' 'fas' %} Внимание!</h4>
+    <p>Это скрытая системная страница для управления тестовыми данными. Используйте с осторожностью.</p>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                {% fontawesome_icon 'database' 'fas' %} Текущие данные
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>Клиентов:</div>
+                    <div><strong>{{ customer_count }}</strong></div>
+                </div>
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div>Заказов:</div>
+                    <div><strong>{{ order_count }}</strong></div>
+                </div>
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>Ячеек хранения:</div>
+                    <div><strong>{{ cell_count }}</strong></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-danger text-white">
+                {% fontawesome_icon 'trash' 'fas' %} Удаление данных
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="clear_data">
+                    
+                    <div class="alert alert-danger">
+                        <strong>Внимание!</strong> Это действие необратимо удалит все данные (клиенты, заказы и ячейки).
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Вы уверены? Это удалит все данные из системы!');">
+                            {% fontawesome_icon 'trash' 'fas' %} Удалить все данные
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                {% fontawesome_icon 'plus-circle' 'fas' %} Генерация тестовых данных
+            </div>
+            <div class="card-body">
+                <ul class="nav nav-tabs mb-3" id="myTab" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="clients-tab" data-bs-toggle="tab" data-bs-target="#clients" 
+                                type="button" role="tab">Клиенты</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders" 
+                                type="button" role="tab">Заказы</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="cells-tab" data-bs-toggle="tab" data-bs-target="#cells" 
+                                type="button" role="tab">Ячейки</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="reasons-tab" data-bs-toggle="tab" data-bs-target="#reasons" 
+                                type="button" role="tab">Причины возвратов</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content" id="myTabContent">
+                    <!-- Генерация клиентов -->
+                    <div class="tab-pane fade show active" id="clients" role="tabpanel">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="generate_customers">
+                            
+                            <h5 class="mb-3">Генерация случайных клиентов</h5>
+                            <div class="mb-3">
+                                <label for="client_count" class="form-label">Количество клиентов:</label>
+                                <input type="number" class="form-control" id="client_count" name="count" value="10" min="1" max="100">
+                            </div>
+                            
+                            <p>Будут созданы случайные клиенты с русскими именами, телефонами и email адресами.</p>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    {% fontawesome_icon 'users' 'fas' %} Сгенерировать клиентов
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Генерация заказов -->
+                    <div class="tab-pane fade" id="orders" role="tabpanel">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="generate_orders">
+                            
+                            <h5 class="mb-3">Генерация случайных заказов</h5>
+                            <div class="mb-3">
+                                <label for="order_count" class="form-label">Количество заказов:</label>
+                                <input type="number" class="form-control" id="order_count" name="count" value="20" min="1" max="200">
+                            </div>
+                            
+                            <p>Будут созданы случайные заказы для существующих клиентов с реалистичными товарами, размерами, ценами и т.д.</p>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    {% fontawesome_icon 'boxes' 'fas' %} Сгенерировать заказы
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Генерация ячеек -->
+                    <div class="tab-pane fade" id="cells" role="tabpanel">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="generate_cells">
+                            
+                            <h5 class="mb-3">Генерация ячеек хранения</h5>
+                            <div class="mb-3">
+                                <label for="cell_count" class="form-label">Количество ячеек:</label>
+                                <input type="number" class="form-control" id="cell_count" name="count" value="10" min="1" max="50">
+                            </div>
+                            
+                            <p>Будут созданы пустые ячейки хранения с номерами формата A001, A002 и т.д.</p>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    {% fontawesome_icon 'archive' 'fas' %} Сгенерировать ячейки
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    
+                    <!-- Причины возврата -->
+                    <div class="tab-pane fade" id="reasons" role="tabpanel">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="seed_reasons">
+                            
+                            <h5 class="mb-3">Базовые причины возврата заказов</h5>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-header">Невскрытые товары</div>
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item">Поврежденная упаковка</li>
+                                            <li class="list-group-item">Отказ до получения</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-header">Вскрытые товары</div>
+                                        <ul class="list-group list-group-flush">
+                                            <li class="list-group-item">Поломка товара</li>
+                                            <li class="list-group-item">Не подошел товар</li>
+                                            <li class="list-group-item">Не хватает части товара</li>
+                                            <li class="list-group-item">Изменил решение</li>
+                                            <li class="list-group-item">Прислали другой товар</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    {% fontawesome_icon 'list' 'fas' %} Создать причины возврата
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

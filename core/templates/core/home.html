@@ -1,0 +1,93 @@
+{% extends 'core/base.html' %}
+
+{% load fontawesome_5 %}
+
+{% block title %}Box Point - Главная{% endblock %}
+
+{% block content %}
+<h1>{% fontawesome_icon 'home' 'fas' %} Пункт выдачи заказов</h1>
+<hr>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                {% fontawesome_icon 'box-open' 'fas' %} Активные выдачи
+            </div>
+            <div class="card-body">
+                {% if active_sessions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID клиента</th>
+                                    <th>Имя клиента</th>
+                                    <th>Количество заказов</th>
+                                    <th>Начало</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in active_sessions %}
+                                <tr>
+                                    <td>{{ session.customer.id }}</td>
+                                    <td>{{ session.customer.name }}</td>
+                                    <td>{{ session.orders.count }}</td>
+                                    <td>{{ session.started_at|date:"d.m.Y H:i" }}</td>
+                                    <td>
+                                        <a href="{% url 'pickup_process' pk=session.customer.id %}" class="btn btn-sm btn-primary">
+                                            {% fontawesome_icon 'arrow-right' 'fas' %} Продолжить
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">Нет активных выдач</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                {% fontawesome_icon 'info-circle' 'fas' %} Статистика
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <div>Ожидают выдачи:</div>
+                    <div><strong>{{ total_pending_orders }}</strong></div>
+                </div>
+                <hr>
+                <div class="d-grid">
+                    <a href="{% url 'customer_search' %}" class="btn btn-primary mb-2">
+                        {% fontawesome_icon 'user-plus' 'fas' %} Новая выдача
+                    </a>
+                    <a href="{% url 'order_receiving' %}" class="btn btn-success mb-2">
+                        {% fontawesome_icon 'truck-loading' 'fas' %} Прием заказов
+                    </a>
+                    <a href="{% url 'order_search' %}" class="btn btn-secondary">
+                        {% fontawesome_icon 'search' 'fas' %} Поиск заказа
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                {% fontawesome_icon 'cogs' 'fas' %} Управление
+            </div>
+            <div class="card-body">
+                <div class="d-grid">
+                    <a href="{% url 'system' %}" class="btn btn-outline-dark">
+                        {% fontawesome_icon 'tools' 'fas' %} Системные настройки
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
