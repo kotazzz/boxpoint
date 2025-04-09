@@ -3,14 +3,98 @@
 {% block title %}Box Point - Главная{% endblock %}
 
 {% block content %}
-<h1><i class="fas fa-home"></i> Пункт выдачи заказов</h1>
-<hr>
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <h1 class="mb-0"><i class="fas fa-home"></i> Пункт выдачи заказов</h1>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <!-- Складская информация -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="fas fa-warehouse"></i> Информация о складе</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <div>Всего ячеек:</div>
+                    <div><strong>{{ total_cells_count }}</strong></div>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <div>Свободно ячеек:</div>
+                    <div><span class="badge bg-success">{{ free_cells_count }}</span></div>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <div>Занято ячеек:</div>
+                    <div><span class="badge bg-danger">{{ occupied_cells_count }}</span></div>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <div>Товаров ожидают приемки:</div>
+                    <div><span class="badge bg-warning">{{ total_pending_orders }}</span></div>
+                </div>
+                <hr>
+                <div class="d-grid">
+                    <a href="{% url 'storage_visualization' %}" class="btn btn-info">
+                        <i class="fas fa-search"></i> Детализация склада
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Быстрые действия -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="fas fa-tasks"></i> Быстрые действия</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'customer_search' %}" class="btn btn-primary">
+                        <i class="fas fa-user-plus"></i> Новая выдача
+                    </a>
+                    <a href="{% url 'order_receiving' %}" class="btn btn-success">
+                        <i class="fas fa-truck-loading"></i> Прием заказов
+                    </a>
+                    <a href="{% url 'order_search' %}" class="btn btn-secondary">
+                        <i class="fas fa-search"></i> Поиск заказа
+                    </a>
+                    <a href="{% url 'system' %}" class="btn btn-dark">
+                        <i class="fas fa-cogs"></i> Системные настройки
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Справка -->
+    <div class="col-lg-4 col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0"><i class="fas fa-info-circle"></i> Справка</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <p><i class="fas fa-lightbulb"></i> <strong>Совет:</strong> Используйте страницу "Детализация склада" для проверки заполненности ячеек.</p>
+                </div>
+                <div class="alert alert-info">
+                    <p><i class="fas fa-lightbulb"></i> <strong>Совет:</strong> На странице клиента доступна информация о товарах в пути и к выдаче.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="row">
-    <div class="col-md-8">
+    <div class="col-md-12">
         <div class="card mb-4">
-            <div class="card-header bg-primary text-white">
-                <i class="fas fa-box-open"></i> Активные выдачи
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="fas fa-box-open"></i> Активные выдачи</h5>
             </div>
             <div class="card-body">
                 {% if active_sessions %}
@@ -20,7 +104,7 @@
                                 <tr>
                                     <th>ID клиента</th>
                                     <th>Имя клиента</th>
-                                    <th>Оплата</th> {# Изменен заголовок столбца #}
+                                    <th>Оплата</th>
                                     <th>Начало</th>
                                     <th>Действия</th>
                                 </tr>
@@ -31,7 +115,6 @@
                                     <td>{{ session.customer.id }}</td>
                                     <td>{{ session.customer.name }}</td>
                                     <td>
-                                        {# Добавляем метку, если есть постоплата #}
                                         {% if session.has_postpaid %}
                                             <span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i> Есть постоплата</span>
                                         {% else %}
@@ -53,47 +136,12 @@
                         </table>
                     </div>
                 {% else %}
-                    <p class="text-muted">Нет активных выдач</p>
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                        <h5>Нет активных выдач</h5>
+                        <p class="text-muted">Все клиенты обслужены</p>
+                    </div>
                 {% endif %}
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-4">
-        <div class="card mb-4">
-            <div class="card-header bg-info text-white">
-                <i class="fas fa-info-circle"></i> Статистика
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between mb-3">
-                    <div>Ожидают выдачи:</div>
-                    <div><strong>{{ total_pending_orders }}</strong></div>
-                </div>
-                <hr>
-                <div class="d-grid">
-                    <a href="{% url 'customer_search' %}" class="btn btn-primary mb-2">
-                        <i class="fas fa-user-plus"></i> Новая выдача
-                    </a>
-                    <a href="{% url 'order_receiving' %}" class="btn btn-success mb-2">
-                        <i class="fas fa-truck-loading"></i> Прием заказов
-                    </a>
-                    <a href="{% url 'order_search' %}" class="btn btn-secondary">
-                        <i class="fas fa-search"></i> Поиск заказа
-                    </a>
-                </div>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header bg-dark text-white">
-                <i class="fas fa-cogs"></i> Управление
-            </div>
-            <div class="card-body">
-                <div class="d-grid">
-                    <a href="{% url 'system' %}" class="btn btn-outline-dark">
-                        <i class="fas fa-tools"></i> Системные настройки
-                    </a>
-                </div>
             </div>
         </div>
     </div>

@@ -28,6 +28,7 @@
                             <th>Имя</th>
                             <th>Телефон</th>
                             <th>Email</th>
+                            <th>Товаров к выдаче</th>
                             <th>Действия</th>
                         </tr>
                     </thead>
@@ -37,9 +38,10 @@
                                 <td>{{ customer.name }}</td>
                                 <td>{{ customer.phone }}</td>
                                 <td>{{ customer.email }}</td>
+                                <td><span class="badge bg-success">{{ customer.pending_count }}</span></td>
                                 <td>
                                     <a href="{% url 'pickup_process' customer.pk %}" class="btn btn-sm btn-success"><i class="fas fa-hand-holding-box"></i> Выдача</a>
-                                    <a href="{% url 'delivery_summary' customer.pk %}" class="btn btn-sm btn-info"><i class="fas fa-history"></i> История</a>
+                                    <a href="{% url 'customer_detail' customer.pk %}" class="btn btn-sm btn-info"><i class="fas fa-user"></i> Детали</a>
                                 </td>
                             </tr>
                         {% endfor %}
@@ -52,9 +54,13 @@
             {% endif %}
         {% else %}
             {% if search_query %}
-                <p>Клиенты не найдены.</p>
+                <div class="alert alert-warning">
+                    <p class="mb-0">Клиенты с товарами к выдаче не найдены по запросу "{{ search_query }}".</p>
+                </div>
             {% else %}
-                <p>Введите запрос для поиска клиентов.</p>
+                <div class="alert alert-info">
+                    <p class="mb-0">Введите запрос для поиска клиентов с товарами, готовыми к выдаче.</p>
+                </div>
             {% endif %}
         {% endif %}
     </div>

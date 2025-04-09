@@ -3,7 +3,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.views.generic import TemplateView, ListView, DetailView, UpdateView
 from django.contrib import messages
-from django.db.models import Sum, Count, Q
+from django.db.models import Q
 from faker import Faker
 import random
 from datetime import timedelta
@@ -25,18 +25,30 @@ class HomeView(ListView):
 
     def get_queryset(self):
         # Оптимизируем запрос, чтобы сразу получить связанные заказы
-        return PickupSession.objects.filter(is_active=True).prefetch_related(
-            models.Prefetch('orders', queryset=Order.objects.filter(status='pending', reception_status='received'))
-        ).order_by('-started_at')
+        return PickupSession.objects.filter(is_active=True).prefetch_related('orders').order_by('-started_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # Общее количество заказов ожидающих приемки
         context['total_pending_orders'] = Order.objects.filter(reception_status='pending').count()
+        
+        # Получаем статистику о складе для домашней страницы
+        context['total_cells_count'] = StorageCell.objects.count()
+        context['occupied_cells_count'] = StorageCell.objects.filter(is_occupied=True).count()
+        context['free_cells_count'] = StorageCell.objects.filter(is_occupied=False).count()
         
         # Добавляем информацию о наличии постоплаты для каждой сессии
         active_sessions_with_postpaid_info = []
         for session in context['active_sessions']:
-            session.has_postpaid = any(order.payment_status == 'postpaid' for order in session.orders.all())
+            # Проверяем все заказы клиента, которые в процессе выдачи (pending + received)
+            has_postpaid = Order.objects.filter(
+                customer=session.customer,
+                status='pending',
+                reception_status='received',
+                payment_status='postpaid'
+            ).exists()
+            
+            session.has_postpaid = has_postpaid
             active_sessions_with_postpaid_info.append(session)
         
         context['active_sessions'] = active_sessions_with_postpaid_info
@@ -51,16 +63,38 @@ class CustomerSearchView(ListView):
 
     def get_queryset(self):
         query = self.request.GET.get('q', '')
+        
+        # Base queryset - only show customers with at least one pending order ready for pickup
+        base_queryset = Customer.objects.filter(
+            orders__status='pending',
+            orders__reception_status='received'
+        ).distinct()
+        
         if query:
-            return Customer.objects.filter(
+            # Filter the already filtered customers by name or phone
+            return base_queryset.filter(
                 Q(name__icontains=query) | Q(phone__icontains=query)
             ).order_by('name')
-        return Customer.objects.all().order_by('name')
+        
+        return base_queryset.order_by('name')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         query = self.request.GET.get('q', '')
         context['search_query'] = query if query else ''
+        
+        # Add pending order counts for each customer
+        customers_with_counts = []
+        for customer in context['customers']:
+            pending_count = Order.objects.filter(
+                customer=customer,
+                status='pending',
+                reception_status='received'
+            ).count()
+            customer.pending_count = pending_count
+            customers_with_counts.append(customer)
+        
+        context['customers'] = customers_with_counts
         return context
 
 
