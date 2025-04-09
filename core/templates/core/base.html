@@ -7,48 +7,85 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Box Point - Система управления пунктом выдачи{% endblock %}</title>
-    {% bootstrap_css %}
-    {% fontawesome_5_static %}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
         body {
-            padding-top: 60px;
-            padding-bottom: 40px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: #f8f9fa;
         }
+        
+        main {
+            flex: 1;
+        }
+        
         .navbar-brand {
             font-weight: bold;
+            font-size: 1.5rem;
         }
+        
+        .nav-link {
+            font-weight: 500;
+        }
+        
+        .container-fluid {
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container-fluid {
+                padding-left: 1rem;
+                padding-right: 1rem;
+            }
+        }
+        
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .card:hover {
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+        
         .card-header {
-            font-weight: bold;
+            font-weight: 500;
         }
-        .table-cell {
-            background-color: #e9ecef;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 10px;
+        
+        .table th {
+            font-weight: 600;
+            background-color: #f8f9fa;
         }
-        .order-pending {
-            border-left: 5px solid #ffc107;
+        
+        .btn {
+            font-weight: 500;
         }
-        .order-delivered {
-            border-left: 5px solid #28a745;
+        
+        /* Progress bar enhancements */
+        .progress {
+            margin-bottom: 1rem;
+            overflow: visible;
         }
-        .order-returned {
-            border-left: 5px solid #dc3545;
-        }
-        .order-cancelled {
-            border-left: 5px solid #6c757d;
-        }
-        .under-inspection {
-            background-color: #fff3cd;
+        
+        .progress-bar {
+            position: relative;
+            text-align: center;
+            line-height: 2rem;
+            font-weight: 600;
         }
     </style>
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
             <div class="container-fluid">
                 <a class="navbar-brand" href="{% url 'home' %}">
-                    <i class="fas fa-box"></i> Box Point
+                    <i class="fas fa-box me-2"></i>BoxPoint
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                     <span class="navbar-toggler-icon"></span>
@@ -57,22 +94,22 @@
                     <ul class="navbar-nav">
                         <li class="nav-item">
                             <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'home' %}">
-                                <i class="fas fa-home"></i> Главная
+                                <i class="fas fa-home me-1"></i> Главная
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if 'customer-search' in request.path %}active{% endif %}" href="{% url 'customer_search' %}">
-                                <i class="fas fa-user"></i> Выдача заказов
+                                <i class="fas fa-box-open me-1"></i> Выдать заказ
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if 'order-receiving' in request.path %}active{% endif %}" href="{% url 'order_receiving' %}">
-                                <i class="fas fa-truck-loading"></i> Прием заказов
+                                <i class="fas fa-dolly me-1"></i> Принять заказ
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if 'order-search' in request.path %}active{% endif %}" href="{% url 'order_search' %}">
-                                <i class="fas fa-search"></i> Поиск заказа
+                                <i class="fas fa-search me-1"></i> Поиск заказов
                             </a>
                         </li>
                     </ul>
@@ -81,20 +118,25 @@
         </nav>
     </header>
 
-    <main class="container mt-4">
+    <main class="container-fluid py-4">
         {% bootstrap_messages %}
-        
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="container mt-5">
-        <hr>
-        <p class="text-center text-muted">
-            &copy; 2025 Box Point - Система управления пунктом выдачи заказов
-        </p>
+    <footer class="bg-light py-3 mt-4 border-top">
+        <div class="container-fluid">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center text-md-start">
+                    <p class="mb-0">&copy; 2025 Box Point - Система управления пунктом выдачи заказов</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <p class="mb-0">Версия 1.0.0</p>
+                </div>
+            </div>
+        </div>
     </footer>
 
-    {% bootstrap_javascript %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Enable tooltips

@@ -14,4 +14,6 @@ urlpatterns = [
     path('order-search/', views.OrderSearchView.as_view(), name='order_search'),
     path('order-receiving/', views.OrderReceivingView.as_view(), name='order_receiving'),
     path('system/', views.SystemView.as_view(), name='system'),
+    # Add the delivery summary URL
+    path('delivery-summary/<int:order_id>/', views.delivery_summary, name='delivery_summary'),
 ]

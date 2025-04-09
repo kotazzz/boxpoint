@@ -45,6 +45,18 @@ class PickupProcessView(DetailView):
         context = super().get_context_data(**kwargs)
         customer = self.get_object()
         
+        # Check if the customer has any pending orders
+        has_pending_orders = Order.objects.filter(
+            customer=customer,
+            status='pending',
+            reception_status='received'
+        ).exists()
+        
+        if not has_pending_orders:
+            context['no_pending_orders'] = True
+            messages.warning(self.request, f'У клиента {customer.name} нет заказов, ожидающих выдачи.')
+            return context
+        
         # Get or create a pickup session for this customer
         session, created = PickupSession.objects.get_or_create(
             customer=customer,
@@ -55,7 +67,8 @@ class PickupProcessView(DetailView):
         # Get pending orders for this customer
         pending_orders = Order.objects.filter(
             customer=customer,
-            reception_status='pending'
+            status='pending',
+            reception_status='received'
         ).select_related('storage_cell')
         
         # Add session to the context
@@ -63,6 +76,28 @@ class PickupProcessView(DetailView):
         context['pending_orders'] = pending_orders
         
         return context
+    
+    def post(self, request, *args, **kwargs):
+        customer = self.get_object()
+        
+        # Get session for this customer
+        session = get_object_or_404(
+            PickupSession,
+            customer=customer,
+            is_active=True
+        )
+        
+        # Get selected orders
+        order_ids = request.POST.getlist('deliver_orders')
+        
+        # Redirect to confirmation page with selected orders
+        if order_ids:
+            # Store selected orders in session
+            request.session['selected_order_ids'] = order_ids
+            return redirect('pickup_confirmation', pk=session.id)
+        else:
+            messages.warning(request, 'Не выбрано ни одного заказа для выдачи.')
+            return redirect('pickup_process', pk=customer.id)
 
 
 class OrderInspectionView(UpdateView):
@@ -136,25 +171,61 @@ class PickupConfirmationView(UpdateView):
         context = super().get_context_data(**kwargs)
         session = self.get_object()
         
-        # Get all pending orders for this session's customer
-        pending_orders = Order.objects.filter(
-            customer=session.customer,
-            status='pending'
-        )
+        # Get all orders for this session's customer
+        orders = Order.objects.filter(
+            customer=session.customer
+        ).select_related('storage_cell')
         
-        # Calculate summary
-        delivered_orders = pending_orders.filter(status='delivered')
-        returned_orders = pending_orders.filter(status='returned')
+        # Get selected order IDs from the form submission or URL parameters
+        selected_order_ids = []
+        if self.request.method == 'POST':
+            selected_order_ids = self.request.POST.getlist('deliver_orders')
+        elif 'order_ids' in self.request.GET:
+            selected_order_ids = self.request.GET.get('order_ids').split(',')
+        else:
+            # Default to all pending orders if none selected
+            selected_order_ids = [str(order.id) for order in orders.filter(
+                status='pending',
+                reception_status='received'
+            )]
+            
+        # Filter out orders that are already delivered
+        valid_order_ids = []
+        for order_id in selected_order_ids:
+            try:
+                order = orders.get(id=order_id)
+                if order.status != 'delivered':
+                    valid_order_ids.append(order_id)
+            except Order.DoesNotExist:
+                continue
         
-        prepaid_total = pending_orders.filter(payment_status='prepaid', status='pending').aggregate(total=Sum('price'))['total'] or 0
-        postpaid_total = pending_orders.filter(payment_status='postpaid', status='pending').aggregate(total=Sum('price'))['total'] or 0
-        refund_total = returned_orders.filter(payment_status='prepaid').aggregate(total=Sum('price'))['total'] or 0
+        # Calculate summaries for confirmed orders
+        delivered_count = len(valid_order_ids)
+        returned_count = orders.filter(status='returned').count()
+        pending_count = orders.filter(status='pending').count() - delivered_count
+        
+        # Calculate financial totals
+        prepaid_total = sum(order.price for order in orders.filter(
+            id__in=valid_order_ids, 
+            payment_status='prepaid'
+        ))
+        
+        postpaid_total = sum(order.price for order in orders.filter(
+            id__in=valid_order_ids,
+            payment_status='postpaid'
+        ))
+        
+        refund_total = sum(order.price for order in orders.filter(
+            status='returned',
+            payment_status='prepaid'
+        ))
         
         context.update({
-            'pending_orders': pending_orders,
-            'delivered_count': delivered_orders.count(),
-            'returned_count': returned_orders.count(),
-            'pending_count': pending_orders.filter(status='pending').count(),
+            'orders': orders,
+            'selected_orders': valid_order_ids,
+            'delivered_count': delivered_count,
+            'returned_count': returned_count,
+            'pending_count': pending_count,
             'prepaid_total': prepaid_total,
             'postpaid_total': postpaid_total,
             'refund_total': refund_total
@@ -169,7 +240,13 @@ class PickupConfirmationView(UpdateView):
         order_ids = self.request.POST.getlist('deliver_orders')
         if order_ids:
             now = timezone.now()
-            Order.objects.filter(id__in=order_ids).update(
+            # Filter out orders that are already delivered
+            orders_to_deliver = Order.objects.filter(
+                id__in=order_ids,
+                status='pending'  # Only process pending orders
+            )
+            
+            orders_to_deliver.update(
                 status='delivered',
                 delivered_at=now
             )
@@ -224,7 +301,7 @@ class OrderReceivingView(TemplateView):
         # Get recent received orders
         context['recent_orders'] = Order.objects.filter(
             received_at__isnull=False
-        ).order_by('-received_at')[:10]
+        ).order_by('-received_at')[:50]
         
         # Get pending orders that haven't been received yet
         context['pending_orders'] = Order.objects.filter(
@@ -462,7 +539,7 @@ def get_customer(request):
     
     if customer_id:
         # Validate that customer_id is numeric before attempting to retrieve the customer
-        if customer_id.isdigit():
+        if (customer_id.isdigit()):
             try:
                 customer = Customer.objects.get(id=customer_id)
                 return redirect('pickup_process', pk=customer.id)
@@ -553,3 +630,52 @@ class PickupCloseView(UpdateView):
         
         messages.success(request, f'Выдача для клиента {session.customer.name} закрыта.')
         return redirect('home')
+
+
+def delivery_summary(request, order_id):
+    """
+    Подробный итог выдачи заказа с финансовой информацией и статистикой по товарам
+    """
+    order = get_object_or_404(Order, id=order_id)
+    order_items = order.items.all().select_related('product')
+    
+    # Счетчики для товаров
+    total_delivered = order_items.filter(status='delivered').count()
+    total_returned = order_items.filter(status='returned').count()
+    total_retained = order_items.filter(status='retained').count()
+    
+    # Финансовые расчеты
+    delivered_total = sum(item.price for item in order_items.filter(status='delivered'))
+    returned_total = sum(item.price for item in order_items.filter(status='returned'))
+    retained_total = sum(item.price for item in order_items.filter(status='retained'))
+    
+    # Суммы по предоплаченным товарам
+    prepaid_total = sum(item.price for item in order_items.filter(status='delivered', prepaid=True))
+    returned_prepaid_total = sum(item.price for item in order_items.filter(status='returned', prepaid=True))
+    retained_prepaid_total = sum(item.price for item in order_items.filter(status='retained', prepaid=True))
+    
+    # Расчет сумм к оплате/возврату
+    to_pay_total = delivered_total - prepaid_total
+    refund_total = returned_prepaid_total
+    
+    # Итоговый расчет
+    total_due = to_pay_total - refund_total
+    
+    context = {
+        'order': order,
+        'order_items': order_items,
+        'total_delivered': total_delivered,
+        'total_returned': total_returned,
+        'total_retained': total_retained,
+        'delivered_total': delivered_total,
+        'returned_total': returned_total,
+        'retained_total': retained_total,
+        'prepaid_total': prepaid_total,
+        'returned_prepaid_total': returned_prepaid_total,
+        'retained_prepaid_total': retained_prepaid_total,
+        'to_pay_total': to_pay_total,
+        'refund_total': refund_total,
+        'total_due': total_due,
+    }
+    
+    return render(request, 'core/delivery_summary.html', context)

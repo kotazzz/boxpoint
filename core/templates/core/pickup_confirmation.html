@@ -13,6 +13,12 @@
 </div>
 <hr>
 
+<div class="alert alert-warning" role="alert">
+    <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Внимание! Подтверждение выдачи</h4>
+    <p>Пожалуйста, проверьте информацию по заказам ниже и нажмите "Завершить выдачу" для подтверждения.</p>
+    <p>После завершения выдачи изменение состава выданных товаров будет невозможно.</p>
+</div>
+
 <div class="row mb-4">
     <div class="col-md-8">
         <div class="card mb-4">
@@ -76,6 +82,59 @@
                 </table>
             </div>
         </div>
+
+        <!-- Список заказов для выдачи -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <i class="fas fa-list"></i> Заказы для выдачи
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID заказа</th>
+                                <th>Наименование</th>
+                                <th>Размер/Цвет</th>
+                                <th>Ячейка</th>
+                                <th>Стоимость</th>
+                                <th>Статус оплаты</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in orders %}
+                                {% if order.id|stringformat:"i" in selected_orders %}
+                                <tr>
+                                    <td>{{ order.order_id }}</td>
+                                    <td>
+                                        <strong>{{ order.name }}</strong>
+                                        {% if order.description %}
+                                        <br><small class="text-muted">{{ order.description|truncatechars:50 }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if order.size %}Размер: {{ order.size }}<br>{% endif %}
+                                        {% if order.color %}Цвет: {{ order.color }}{% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ order.storage_cell.number }}</span>
+                                    </td>
+                                    <td>{{ order.price }} ₽</td>
+                                    <td>
+                                        {% if order.payment_status == 'prepaid' %}
+                                        <span class="badge bg-success">Предоплата</span>
+                                        {% else %}
+                                        <span class="badge bg-warning text-dark">Постоплата</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
     </div>
 
     <div class="col-md-4">
@@ -113,6 +172,11 @@
             </div>
             
             <div class="d-grid gap-2 mt-4">
+                <!-- Сохраняем список выбранных заказов -->
+                {% for order_id in selected_orders %}
+                <input type="hidden" name="deliver_orders" value="{{ order_id }}">
+                {% endfor %}
+                
                 <button type="submit" class="btn btn-success btn-lg">
                     <i class="fas fa-check-double"></i> Завершить выдачу
                 </button>
