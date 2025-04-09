@@ -14,47 +14,55 @@
 <hr>
 
 <div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card">
+    <div class="col-md-12">
+        <div class="card border-info">
             <div class="card-header bg-info text-white">
-                <i class="fas fa-user"></i> Информация о клиенте
-            </div>
-            <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-sm-4">ID клиента:</dt>
-                    <dd class="col-sm-8">{{ object.id }}</dd>
-                    
-                    <dt class="col-sm-4">Имя:</dt>
-                    <dd class="col-sm-8">{{ object.name }}</dd>
-                    
-                    <dt class="col-sm-4">Телефон:</dt>
-                    <dd class="col-sm-8">{{ object.phone }}</dd>
-                    
-                    {% if object.email %}
-                    <dt class="col-sm-4">Email:</dt>
-                    <dd class="col-sm-8">{{ object.email }}</dd>
-                    {% endif %}
-                </dl>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-user me-2"></i> Клиент: {{ object.name }}</h5>
+                    <div>
+                        <span class="badge bg-light text-dark me-2">ID: {{ object.id }}</span>
+                        <span class="badge bg-light text-dark">Тел: {{ object.phone }}</span>
+                        {% if object.email %}<span class="badge bg-light text-dark ms-2">{{ object.email }}</span>{% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-header bg-primary text-white">
-                <i class="fas fa-info-circle"></i> Сводка заказов
+</div>
+
+{% if postpaid_count > 0 %}
+<div class="alert alert-danger mb-4">
+    <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Внимание! Есть товары требующие оплаты при получении</h4>
+    <p class="mb-0">В заказах клиента есть <strong>{{ postpaid_count }}</strong> товаров с постоплатой на общую сумму <strong id="postpaid-amount"></strong>. Убедитесь, что клиент готов их оплатить.</p>
+</div>
+{% endif %}
+
+<div class="row mb-3">
+    <div class="col">
+        <div class="card-group">
+            <div class="card bg-light mb-0">
+                <div class="card-body text-center py-2">
+                    <h4 class="mb-0">{{ pending_orders|length }}</h4>
+                    <small class="text-muted">Всего товаров</small>
+                </div>
             </div>
-            <div class="card-body">
-                <dl class="row mb-0">
-                    <dt class="col-sm-8">Всего заказов на выдачу:</dt>
-                    <dd class="col-sm-4 text-end"><strong>{{ pending_orders|length }}</strong></dd>
-                    
-                    <dt class="col-sm-8">Предоплаченных заказов:</dt>
-                    <dd class="col-sm-4 text-end">{{ pending_orders|dictsort:"payment_status"|dictsortreversed:"payment_status"|slice:":"|length }}</dd>
-                    
-                    <dt class="col-sm-8">Заказов с постоплатой:</dt>
-                    <dd class="col-sm-4 text-end">{{ pending_orders|dictsort:"payment_status"|slice:":"|length }}</dd>
-                </dl>
+            <div class="card bg-light mb-0">
+                <div class="card-body text-center py-2">
+                    <h4 class="mb-0">{{ prepaid_count }}</h4>
+                    <small class="text-muted">Предоплачено</small>
+                </div>
+            </div>
+            <div class="card bg-light mb-0">
+                <div class="card-body text-center py-2">
+                    <h4 class="mb-0">{{ postpaid_count }}</h4>
+                    <small class="text-muted">К оплате</small>
+                </div>
+            </div>
+            <div class="card bg-light mb-0">
+                <div class="card-body text-center py-2">
+                    <h4 class="mb-0">{{ marked_for_return_count }}</h4>
+                    <small class="text-muted">На возврат</small>
+                </div>
             </div>
         </div>
     </div>
@@ -84,12 +92,15 @@
                         </thead>
                         <tbody>
                             {% for order in pending_orders %}
-                            <tr class="{% if order.is_under_inspection %}under-inspection{% endif %}">
+                            <tr class="{% if order.is_under_inspection %}table-warning{% endif %}{% if order.marked_for_return %}table-danger{% endif %}">
                                 <td>{{ order.order_id }}</td>
                                 <td>
                                     <strong>{{ order.name }}</strong>
                                     {% if order.description %}
                                     <br><small class="text-muted">{{ order.description|truncatechars:50 }}</small>
+                                    {% endif %}
+                                    {% if order.marked_for_return %}
+                                    <br><span class="badge bg-danger"><i class="fas fa-undo-alt"></i> Отмечен на возврат</span>
                                     {% endif %}
                                 </td>
                                 <td>
@@ -111,7 +122,8 @@
                                     <div class="form-check">
                                         <input class="form-check-input" type="checkbox" name="deliver_orders" 
                                                value="{{ order.id }}" id="order_{{ order.id }}"
-                                               {% if not order.is_under_inspection %}checked{% endif %}>
+                                               {% if not order.is_under_inspection and not order.marked_for_return %}checked{% endif %}
+                                               {% if order.marked_for_return %}disabled{% endif %}>
                                         <label class="form-check-label" for="order_{{ order.id }}">
                                             Выдать
                                         </label>
@@ -119,14 +131,21 @@
                                 </td>
                                 <td>
                                     <div class="btn-group">
-                                        {% if not order.is_under_inspection %}
+                                        {% if not order.is_under_inspection and not order.marked_for_return %}
                                         <a href="{% url 'order_inspection' pk=order.id %}" class="btn btn-warning btn-sm">
                                             <i class="fas fa-search"></i> На проверку
                                         </a>
                                         {% endif %}
+                                        
+                                        {% if order.marked_for_return %}
+                                        <a href="{% url 'order_return_cancel' pk=order.id %}" class="btn btn-success btn-sm">
+                                            <i class="fas fa-times-circle"></i> Отменить возврат
+                                        </a>
+                                        {% else %}
                                         <a href="{% url 'order_cancel' pk=order.id %}" class="btn btn-danger btn-sm">
                                             <i class="fas fa-ban"></i> Отказ
                                         </a>
+                                        {% endif %}
                                     </div>
                                 </td>
                             </tr>
@@ -165,4 +184,56 @@
     </div>
 {% endif %}
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Расчет суммы постоплаты
+        let postpaidAmount = 0;
+        const rows = document.querySelectorAll('table tbody tr');
+        rows.forEach(row => {
+            const paymentStatus = row.querySelector('td:nth-child(6) .badge').textContent.trim();
+            if (paymentStatus === 'Постоплата') {
+                const priceText = row.querySelector('td:nth-child(5)').textContent.trim();
+                const price = parseFloat(priceText.replace(' ₽', '').replace(',', '.'));
+                
+                // Проверяем, отмечен ли товар для возврата
+                const isMarkedForReturn = row.classList.contains('table-danger');
+                if (!isMarkedForReturn) {
+                    postpaidAmount += price;
+                }
+            }
+        });
+        
+        // Устанавливаем значение в плашке предупреждения
+        const postpaidAmountElement = document.getElementById('postpaid-amount');
+        if (postpaidAmountElement) {
+            postpaidAmountElement.textContent = postpaidAmount.toFixed(2) + ' ₽';
+        }
+        
+        // Обработчик для чекбоксов
+        const checkboxes = document.querySelectorAll('input[name="deliver_orders"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const row = this.closest('tr');
+                const paymentStatus = row.querySelector('td:nth-child(6) .badge').textContent.trim();
+                if (paymentStatus === 'Постоплата') {
+                    const priceText = row.querySelector('td:nth-child(5)').textContent.trim();
+                    const price = parseFloat(priceText.replace(' ₽', '').replace(',', '.'));
+                    
+                    if (this.checked) {
+                        postpaidAmount += price;
+                    } else {
+                        postpaidAmount -= price;
+                    }
+                    
+                    if (postpaidAmountElement) {
+                        postpaidAmountElement.textContent = postpaidAmount.toFixed(2) + ' ₽';
+                    }
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

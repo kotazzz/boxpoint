@@ -80,6 +80,10 @@ class Order(models.Model):
     delivered_at = models.DateTimeField(null=True, blank=True, verbose_name="Дата выдачи")
     is_under_inspection = models.BooleanField(default=False, verbose_name="На проверке")
     notes = models.TextField(blank=True, null=True, verbose_name="Примечания")
+    # Новые поля для отложенного возврата
+    marked_for_return = models.BooleanField(default=False, verbose_name="Отмечен для возврата")
+    return_reason_id = models.IntegerField(blank=True, null=True, verbose_name="ID причины возврата")
+    return_notes = models.TextField(blank=True, null=True, verbose_name="Примечания к возврату")
 
     def __str__(self):
         return f"{self.order_id} - {self.name} ({self.customer.name})"

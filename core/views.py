@@ -1,3 +1,4 @@
+from django.db import models
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import JsonResponse
 from django.utils import timezone
@@ -25,11 +26,22 @@ class HomeView(ListView):
     context_object_name = 'active_sessions'
 
     def get_queryset(self):
-        return PickupSession.objects.filter(is_active=True).order_by('-started_at')
+        # Оптимизируем запрос, чтобы сразу получить связанные заказы
+        return PickupSession.objects.filter(is_active=True).prefetch_related(
+            models.Prefetch('orders', queryset=Order.objects.filter(status='pending', reception_status='received'))
+        ).order_by('-started_at')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['total_pending_orders'] = Order.objects.filter(reception_status='pending').count()
+        
+        # Добавляем информацию о наличии постоплаты для каждой сессии
+        active_sessions_with_postpaid_info = []
+        for session in context['active_sessions']:
+            session.has_postpaid = any(order.payment_status == 'postpaid' for order in session.orders.all())
+            active_sessions_with_postpaid_info.append(session)
+        
+        context['active_sessions'] = active_sessions_with_postpaid_info
         return context
 
 
@@ -71,9 +83,17 @@ class PickupProcessView(DetailView):
             reception_status='received'
         ).select_related('storage_cell')
         
+        # Count prepaid and postpaid orders
+        prepaid_count = pending_orders.filter(payment_status='prepaid').count()
+        postpaid_count = pending_orders.filter(payment_status='postpaid').count()
+        marked_for_return_count = pending_orders.filter(marked_for_return=True).count()
+        
         # Add session to the context
         context['session'] = session
         context['pending_orders'] = pending_orders
+        context['prepaid_count'] = prepaid_count
+        context['postpaid_count'] = postpaid_count
+        context['marked_for_return_count'] = marked_for_return_count
         
         return context
     
@@ -136,26 +156,15 @@ class OrderCancelView(UpdateView):
         if reason_id:
             reason = get_object_or_404(ReturnReason, id=reason_id)
             
-            # Update order status
-            order.status = 'returned'
+            # Instead of immediately setting status to 'returned',
+            # mark it for return by storing the reason and notes
+            # The actual return will happen during pickup confirmation
+            order.marked_for_return = True
+            order.return_reason_id = reason.id
+            order.return_notes = notes
             order.save()
             
-            # Create return record
-            OrderReturn.objects.create(
-                order=order,
-                reason=reason,
-                notes=notes
-            )
-            
-            # Free up storage cell if this was the last order for this customer
-            if not Order.objects.filter(customer=order.customer, status='pending').exists():
-                cell = order.storage_cell
-                if cell:
-                    cell.is_occupied = False
-                    cell.current_customer = None
-                    cell.save()
-            
-            messages.success(request, f'Заказ {order.order_id} успешно возвращен')
+            messages.success(request, f'Заказ {order.order_id} отмечен для возврата. Завершите выдачу, чтобы увидеть финансовый итог.')
             return redirect('pickup_process', pk=order.customer.pk)
         else:
             messages.error(request, 'Необходимо указать причину возврата')
@@ -186,7 +195,8 @@ class PickupConfirmationView(UpdateView):
             # Default to all pending orders if none selected
             selected_order_ids = [str(order.id) for order in orders.filter(
                 status='pending',
-                reception_status='received'
+                reception_status='received',
+                marked_for_return=False  # Don't include orders marked for return
             )]
             
         # Filter out orders that are already delivered
@@ -194,15 +204,33 @@ class PickupConfirmationView(UpdateView):
         for order_id in selected_order_ids:
             try:
                 order = orders.get(id=order_id)
-                if order.status != 'delivered':
+                if order.status == 'pending' and order.reception_status == 'received':
                     valid_order_ids.append(order_id)
             except Order.DoesNotExist:
                 continue
         
+        # Count orders marked for return
+        marked_for_return = orders.filter(
+            status='pending',
+            reception_status='received', 
+            marked_for_return=True
+        ).count()
+        
         # Calculate summaries for confirmed orders
         delivered_count = len(valid_order_ids)
         returned_count = orders.filter(status='returned').count()
-        pending_count = orders.filter(status='pending').count() - delivered_count
+        
+        # Only count actually received pending orders that aren't being delivered or marked for return
+        actual_pending_count = orders.filter(
+            status='pending',
+            reception_status='received'
+        ).exclude(
+            id__in=valid_order_ids
+        ).exclude(
+            marked_for_return=True
+        ).count()
+        
+        pending_count = actual_pending_count
         
         # Calculate financial totals
         prepaid_total = sum(order.price for order in orders.filter(
@@ -216,7 +244,7 @@ class PickupConfirmationView(UpdateView):
         ))
         
         refund_total = sum(order.price for order in orders.filter(
-            status='returned',
+            marked_for_return=True,
             payment_status='prepaid'
         ))
         
@@ -224,38 +252,64 @@ class PickupConfirmationView(UpdateView):
             'orders': orders,
             'selected_orders': valid_order_ids,
             'delivered_count': delivered_count,
-            'returned_count': returned_count,
+            'returned_count': returned_count + marked_for_return,  # Include marked for return in the count
             'pending_count': pending_count,
             'prepaid_total': prepaid_total,
             'postpaid_total': postpaid_total,
-            'refund_total': refund_total
+            'refund_total': refund_total,
+            'marked_for_return': marked_for_return
         })
         
         return context
     
     def form_valid(self, form):
         session = form.save(commit=False)
-        
-        # Mark selected orders as delivered
+
+        # Get all orders for this session's customer
+        orders = Order.objects.filter(customer=session.customer)
+
+        # Get selected order IDs from the form submission
         order_ids = self.request.POST.getlist('deliver_orders')
-        if order_ids:
-            now = timezone.now()
-            # Filter out orders that are already delivered
-            orders_to_deliver = Order.objects.filter(
-                id__in=order_ids,
-                status='pending'  # Only process pending orders
-            )
-            
-            orders_to_deliver.update(
-                status='delivered',
-                delivered_at=now
-            )
-        
+
+        # Mark orders as delivered or keep them pending based on selection
+        now = timezone.now()
+        for order in orders:
+            if str(order.id) in order_ids and not order.marked_for_return:
+                order.status = 'delivered'
+                order.delivered_at = now
+            else:
+                # If the order is not selected or marked for return, keep it pending
+                order.status = 'pending'
+                order.delivered_at = None
+
+            order.save()
+
+        # Process orders marked for return
+        orders_to_return = Order.objects.filter(
+            customer=session.customer,
+            status='pending',
+            marked_for_return=True
+        )
+
+        # Create return records and update status
+        for order in orders_to_return:
+            order.status = 'returned'
+            order.save()
+
+            # Create return record if we have a reason
+            if order.return_reason_id:
+                reason = ReturnReason.objects.get(id=order.return_reason_id)
+                OrderReturn.objects.create(
+                    order=order,
+                    reason=reason,
+                    notes=order.return_notes or ''
+                )
+
         # Mark the session as completed
         session.is_active = False
-        session.completed_at = timezone.now()
+        session.completed_at = now
         session.save()
-        
+
         # Free up storage cell if all orders processed
         if not Order.objects.filter(customer=session.customer, status='pending').exists():
             cells = StorageCell.objects.filter(current_customer=session.customer)
@@ -263,9 +317,9 @@ class PickupConfirmationView(UpdateView):
                 cell.is_occupied = False
                 cell.current_customer = None
                 cell.save()
-        
+
         messages.success(self.request, 'Выдача заказов успешно завершена')
-        return redirect('home')
+        return redirect('delivery_summary', order_id=session.customer.id)
 
 
 class OrderSearchView(TemplateView):
@@ -305,7 +359,7 @@ class OrderReceivingView(TemplateView):
         
         # Get pending orders that haven't been received yet
         context['pending_orders'] = Order.objects.filter(
-            received_at__isnull=True,
+            reception_status='pending',
             status='pending'
         ).select_related('customer').order_by('created_at')
         
@@ -339,8 +393,9 @@ class OrderReceivingView(TemplateView):
                         messages.error(request, 'Нет свободных ячеек')
                         return redirect('order_receiving')
                 
-                # Assign order to cell
+                # Assign order to cell and update reception status
                 order.storage_cell = customer_cell
+                order.reception_status = 'received'  # Set the reception status explicitly
                 order.received_at = timezone.now()
                 order.save()
                 
@@ -636,23 +691,26 @@ def delivery_summary(request, order_id):
     """
     Подробный итог выдачи заказа с финансовой информацией и статистикой по товарам
     """
-    order = get_object_or_404(Order, id=order_id)
-    order_items = order.items.all().select_related('product')
+    # Вместо поиска заказа, получаем клиента для отображения статистики
+    customer = get_object_or_404(Customer, id=order_id)
+    
+    # Получаем заказы этого клиента
+    orders = Order.objects.filter(customer=customer)
     
     # Счетчики для товаров
-    total_delivered = order_items.filter(status='delivered').count()
-    total_returned = order_items.filter(status='returned').count()
-    total_retained = order_items.filter(status='retained').count()
+    total_delivered = orders.filter(status='delivered').count()
+    total_returned = orders.filter(status='returned').count()
+    total_retained = orders.filter(status='pending').count()
     
     # Финансовые расчеты
-    delivered_total = sum(item.price for item in order_items.filter(status='delivered'))
-    returned_total = sum(item.price for item in order_items.filter(status='returned'))
-    retained_total = sum(item.price for item in order_items.filter(status='retained'))
+    delivered_total = sum(order.price for order in orders.filter(status='delivered'))
+    returned_total = sum(order.price for order in orders.filter(status='returned'))
+    retained_total = sum(order.price for order in orders.filter(status='pending'))
     
     # Суммы по предоплаченным товарам
-    prepaid_total = sum(item.price for item in order_items.filter(status='delivered', prepaid=True))
-    returned_prepaid_total = sum(item.price for item in order_items.filter(status='returned', prepaid=True))
-    retained_prepaid_total = sum(item.price for item in order_items.filter(status='retained', prepaid=True))
+    prepaid_total = sum(order.price for order in orders.filter(status='delivered', payment_status='prepaid'))
+    returned_prepaid_total = sum(order.price for order in orders.filter(status='returned', payment_status='prepaid'))
+    retained_prepaid_total = sum(order.price for order in orders.filter(status='pending', payment_status='prepaid'))
     
     # Расчет сумм к оплате/возврату
     to_pay_total = delivered_total - prepaid_total
@@ -662,8 +720,8 @@ def delivery_summary(request, order_id):
     total_due = to_pay_total - refund_total
     
     context = {
-        'order': order,
-        'order_items': order_items,
+        'customer': customer,
+        'orders': orders,
         'total_delivered': total_delivered,
         'total_returned': total_returned,
         'total_retained': total_retained,
@@ -679,3 +737,36 @@ def delivery_summary(request, order_id):
     }
     
     return render(request, 'core/delivery_summary.html', context)
+
+
+class OrderReturnCancelView(UpdateView):
+    model = Order
+    template_name = 'core/order_return_cancel.html'
+    fields = []
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        order = self.get_object()
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        order = self.get_object()
+        
+        # Снимаем пометку возврата
+        order.marked_for_return = False
+        order.return_reason_id = None
+        order.return_notes = None
+        order.save()
+        
+        messages.success(request, f'Возврат заказа {order.order_id} отменен')
+        return redirect('pickup_process', pk=order.customer.pk)
+        
+    def get(self, request, *args, **kwargs):
+        order = self.get_object()
+        
+        # Если товар не отмечен для возврата, перенаправляем обратно
+        if not order.marked_for_return:
+            messages.warning(request, f'Заказ {order.order_id} не отмечен для возврата')
+            return redirect('pickup_process', pk=order.customer.pk)
+            
+        return super().get(request, *args, **kwargs)

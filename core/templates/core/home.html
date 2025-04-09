@@ -20,7 +20,7 @@
                                 <tr>
                                     <th>ID клиента</th>
                                     <th>Имя клиента</th>
-                                    <th>Количество заказов</th>
+                                    <th>Оплата</th> {# Изменен заголовок столбца #}
                                     <th>Начало</th>
                                     <th>Действия</th>
                                 </tr>
@@ -30,7 +30,14 @@
                                 <tr>
                                     <td>{{ session.customer.id }}</td>
                                     <td>{{ session.customer.name }}</td>
-                                    <td>{{ session.orders.count }}</td>
+                                    <td>
+                                        {# Добавляем метку, если есть постоплата #}
+                                        {% if session.has_postpaid %}
+                                            <span class="badge bg-danger"><i class="fas fa-exclamation-triangle me-1"></i> Есть постоплата</span>
+                                        {% else %}
+                                            <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Предоплата</span>
+                                        {% endif %}
+                                    </td>
                                     <td>{{ session.started_at|date:"d.m.Y H:i" }}</td>
                                     <td>
                                         <a href="{% url 'pickup_process' pk=session.customer.id %}" class="btn btn-sm btn-primary">
