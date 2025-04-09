@@ -1,0 +1,38 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Закрыть выдачу{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-warning text-dark">
+                    <h3>Закрыть выдачу</h3>
+                </div>
+                <div class="card-body">
+                    <h4>Клиент: {{ session.customer.name }}</h4>
+                    <p>Дата начала: {{ session.started_at }}</p>
+                    
+                    <div class="alert alert-warning">
+                        <strong>Внимание!</strong> Вы собираетесь закрыть активную выдачу. 
+                        Это действие нельзя отменить.
+                    </div>
+                    
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="cancel_reason" class="form-label">Причина закрытия (необязательно):</label>
+                            <textarea name="cancel_reason" id="cancel_reason" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'home' %}" class="btn btn-secondary">Отмена</a>
+                            <button type="submit" class="btn btn-danger">Закрыть выдачу</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

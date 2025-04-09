@@ -7,6 +7,7 @@ urlpatterns = [
     path('get-customer/', views.get_customer, name='get_customer'),
     path('pickup-process/<int:pk>/', views.PickupProcessView.as_view(), name='pickup_process'),
     path('pickup-cancel/<int:pk>/', views.PickupCancelView.as_view(), name='pickup_cancel'),
+    path('pickup-close/<int:pk>/', views.PickupCloseView.as_view(), name='pickup_close'),
     path('order-inspection/<int:pk>/', views.OrderInspectionView.as_view(), name='order_inspection'),
     path('order-cancel/<int:pk>/', views.OrderCancelView.as_view(), name='order_cancel'),
     path('pickup-confirmation/<int:pk>/', views.PickupConfirmationView.as_view(), name='pickup_confirmation'),

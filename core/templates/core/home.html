@@ -36,6 +36,9 @@
                                         <a href="{% url 'pickup_process' pk=session.customer.id %}" class="btn btn-sm btn-primary">
                                             <i class="fas fa-arrow-right"></i> Продолжить
                                         </a>
+                                        <a href="{% url 'pickup_close' pk=session.pk %}" class="btn btn-sm btn-warning ms-1">
+                                            <i class="fas fa-times-circle"></i> Закрыть
+                                        </a>
                                     </td>
                                 </tr>
                                 {% endfor %}

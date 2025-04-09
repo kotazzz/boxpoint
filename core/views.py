@@ -199,11 +199,13 @@ class OrderSearchView(TemplateView):
         order_id = self.request.GET.get('order_id')
         
         if order_id:
+            # Validate that the order_id is valid before trying to query
             try:
                 order = Order.objects.get(order_id=order_id)
                 context['order'] = order
             except Order.DoesNotExist:
                 context['not_found'] = True
+                messages.error(self.request, f'Заказ с ID {order_id} не найден')
                 
         return context
 
@@ -237,6 +239,7 @@ class OrderReceivingView(TemplateView):
         customer_id = request.POST.get('customer_id')
         
         if order_id:
+            # Validate order_id format if needed
             try:
                 order = Order.objects.get(order_id=order_id)
                 
@@ -267,6 +270,17 @@ class OrderReceivingView(TemplateView):
                 messages.success(request, f'Заказ {order.order_id} принят в ячейку {customer_cell.number}')
             except Order.DoesNotExist:
                 messages.error(request, f'Заказ с ID {order_id} не найден')
+        elif customer_id:
+            # Add validation for customer_id
+            if not customer_id.isdigit():
+                messages.error(request, 'ID клиента должен быть числом')
+                return redirect('order_receiving')
+                
+            try:
+                customer = Customer.objects.get(id=customer_id)
+                # Process customer-related operations
+            except Customer.DoesNotExist:
+                messages.error(request, f'Клиент с ID {customer_id} не найден')
         
         return redirect('order_receiving')
 
@@ -447,12 +461,28 @@ def get_customer(request):
     customer_id = request.GET.get('customer_id')
     
     if customer_id:
-        try:
-            customer = Customer.objects.get(id=customer_id)
-            return redirect('pickup_process', pk=customer.id)
-        except Customer.DoesNotExist:
-            messages.error(request, f'Клиент с ID {customer_id} не найден')
-            return redirect('customer_search')
+        # Validate that customer_id is numeric before attempting to retrieve the customer
+        if customer_id.isdigit():
+            try:
+                customer = Customer.objects.get(id=customer_id)
+                return redirect('pickup_process', pk=customer.id)
+            except Customer.DoesNotExist:
+                messages.error(request, f'Клиент с ID {customer_id} не найден')
+                return redirect('customer_search')
+        else:
+            # Search by name if input is not numeric
+            customers = Customer.objects.filter(name__icontains=customer_id)
+            if customers.count() == 1:
+                # If exactly one match, go directly to that customer
+                customer = customers.first()
+                return redirect('pickup_process', pk=customer.id)
+            elif customers.count() > 1:
+                # If multiple matches, pass them to the template for selection
+                messages.info(request, f'Найдено {customers.count()} клиента с этим именем. Пожалуйста, выберите нужного клиента.')
+                return render(request, 'core/customer_search.html', {'customers': customers})
+            else:
+                messages.error(request, f'Клиент с именем "{customer_id}" не найден')
+                return redirect('customer_search')
     
     return redirect('customer_search')
 
@@ -487,4 +517,39 @@ def pickup_cancel(request):
         return render(request, 'core/pickup_cancel.html', context)
     except PickupSession.DoesNotExist:
         messages.error(request, "Нет активной сессии выдачи для отмены.")
+        return redirect('home')
+
+
+class PickupCloseView(UpdateView):
+    model = PickupSession
+    template_name = 'core/pickup_close.html'
+    fields = []
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        session = self.get_object()
+        
+        # Get all orders associated with this session
+        context['orders'] = Order.objects.filter(
+            customer=session.customer,
+            status='pending'
+        )
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        session = self.get_object()
+        cancel_reason = request.POST.get('cancel_reason', '')
+        
+        # Mark session as inactive
+        session.is_active = False
+        session.completed_at = timezone.now()
+        
+        # Store the cancel reason if provided
+        if cancel_reason:
+            session.notes = f"Closed with reason: {cancel_reason}"
+        
+        session.save()
+        
+        messages.success(request, f'Выдача для клиента {session.customer.name} закрыта.')
         return redirect('home')
