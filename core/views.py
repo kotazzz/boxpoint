@@ -1,10 +1,8 @@
 from django.db import models
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
 from django.utils import timezone
-from django.views.generic import TemplateView, ListView, DetailView, CreateView, UpdateView
+from django.views.generic import TemplateView, ListView, DetailView, UpdateView
 from django.contrib import messages
-from django.urls import reverse_lazy
 from django.db.models import Sum, Count, Q
 from faker import Faker
 import random
@@ -45,8 +43,25 @@ class HomeView(ListView):
         return context
 
 
-class CustomerSearchView(TemplateView):
+class CustomerSearchView(ListView):
+    model = Customer
     template_name = 'core/customer_search.html'
+    context_object_name = 'customers'
+    paginate_by = 10
+
+    def get_queryset(self):
+        query = self.request.GET.get('q', '')
+        if query:
+            return Customer.objects.filter(
+                Q(name__icontains=query) | Q(phone__icontains=query)
+            ).order_by('name')
+        return Customer.objects.all().order_by('name')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        query = self.request.GET.get('q', '')
+        context['search_query'] = query if query else ''
+        return context
 
 
 class PickupProcessView(DetailView):
@@ -329,7 +344,7 @@ class OrderSearchView(TemplateView):
         context = super().get_context_data(**kwargs)
         order_id = self.request.GET.get('order_id')
         
-        if order_id:
+        if (order_id):
             # Validate that the order_id is valid before trying to query
             try:
                 order = Order.objects.get(order_id=order_id)
@@ -770,3 +785,88 @@ class OrderReturnCancelView(UpdateView):
             return redirect('pickup_process', pk=order.customer.pk)
             
         return super().get(request, *args, **kwargs)
+
+
+class StorageVisualizationView(TemplateView):
+    template_name = 'core/storage/visualization.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Поиск по номеру ячейки
+        search_query = self.request.GET.get('search', '')
+        if search_query:
+            cells = StorageCell.objects.filter(number__icontains=search_query).order_by('number')
+        else:
+            cells = StorageCell.objects.all().order_by('number')
+            
+        # Добавляем метрики
+        context['cells'] = cells
+        context['total_cells_count'] = cells.count()
+        context['occupied_cells_count'] = cells.filter(is_occupied=True).count()
+        context['free_cells_count'] = cells.filter(is_occupied=False).count()
+        context['search_query'] = search_query
+        
+        # Предзагружаем связанные заказы для снижения количества запросов к БД
+        # Фильтруем только заказы со статусом 'pending' и reception_status='received'
+        cells = cells.prefetch_related(
+            models.Prefetch('orders', queryset=Order.objects.filter(
+                status='pending', 
+                reception_status='received'
+            ))
+        )
+        
+        return context
+
+
+class CustomerDetailView(DetailView):
+    model = Customer
+    template_name = 'core/customers/customer_detail.html'
+    context_object_name = 'customer'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        customer = self.get_object()
+        
+        # Получаем заказы клиента по разным статусам
+        orders = Order.objects.filter(customer=customer)
+        
+        # Доступные к выдаче заказы (получены на склад)
+        context['available_orders'] = orders.filter(
+            status='pending',
+            reception_status='received'
+        ).select_related('storage_cell').order_by('-received_at')
+        
+        # Заказы в пути (еще не получены на склад)
+        context['in_transit_orders'] = orders.filter(
+            status='pending',
+            reception_status='pending'
+        ).order_by('-created_at')
+        
+        # История выданных заказов
+        context['delivered_orders'] = orders.filter(
+            status='delivered'
+        ).order_by('-delivered_at')
+        
+        # Возвращенные заказы
+        context['returned_orders'] = orders.filter(
+            status='returned'
+        ).order_by('-updated_at')
+        
+        # Статистика по заказам
+        context['total_orders'] = orders.count()
+        context['available_count'] = context['available_orders'].count()
+        context['in_transit_count'] = context['in_transit_orders'].count()
+        context['delivered_count'] = context['delivered_orders'].count()
+        context['returned_count'] = context['returned_orders'].count()
+        
+        # Финансовая статистика
+        context['total_pending_amount'] = sum(order.price for order in context['available_orders'])
+        context['total_in_transit_amount'] = sum(order.price for order in context['in_transit_orders'])
+        
+        # Сессии выдачи для этого клиента
+        context['pickup_sessions'] = PickupSession.objects.filter(
+            customer=customer
+        ).order_by('-started_at')[:10]  # Показываем только последние 10
+        
+        return context

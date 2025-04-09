@@ -1,6 +1,5 @@
 {% extends 'core/base.html' %}
 {% load django_bootstrap5 %}
-{% load mathfilters %}
 
 {% block title %}Итоги выдачи заказов{% endblock %}
 
@@ -157,7 +156,7 @@
                                             <td class="fw-bold fs-5">ИТОГО К ОПЛАТЕ:</td>
                                             <td class="text-end fw-bold fs-5 {% if total_due > 0 %}text-success{% elif total_due < 0 %}text-danger{% else %}text-muted{% endif %}">
                                                 {% if total_due < 0 %}
-                                                    {{ total_due|abs|floatformat:2 }} ₽ (возврат)
+                                                    {{ total_due|floatformat:2 }} ₽ (возврат)
                                                 {% elif total_due > 0 %}
                                                     {{ total_due|floatformat:2 }} ₽ (к оплате)
                                                 {% else %}

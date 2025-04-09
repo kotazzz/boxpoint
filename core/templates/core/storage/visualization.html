@@ -34,30 +34,18 @@
                         <div class="card-body">
                             {% if cell.is_occupied %}
                                 <h6 class="card-title">Клиент: {{ cell.current_customer.name }}</h6>
-                                <h6>Заказы в ячейке:</h6>
-                                <div class="list-group">
-                                    {% for order in cell.orders.all %}
-                                        <div class="list-group-item list-group-item-action flex-column align-items-start p-2">
-                                            <div class="d-flex w-100 justify-content-between align-items-center">
-                                                <small class="text-muted">{{ order.order_id }}</small>
-                                                <span class="badge {% if order.received_at %}bg-success{% else %}bg-warning{% endif %}">
-                                                    {{ order.received_at|yesno:"Принят,Ожидает приемки" }}
-                                                </span>
-                                            </div>
-                                            <p class="m-0">{{ order.name }}</p>
-                                            {% if order.size or order.color %}
-                                                <small class="text-muted">
-                                                    {% if order.size %}Размер: {{ order.size }}{% endif %}
-                                                    {% if order.color %}{% if order.size %} | {% endif %}Цвет: {{ order.color }}{% endif %}
-                                                </small>
-                                            {% endif %}
-                                        </div>
-                                    {% empty %}
-                                        <div class="text-center text-muted py-2">
-                                            <small>Нет активных заказов</small>
-                                        </div>
-                                    {% endfor %}
-                                </div>
+                                {% if cell.orders.all %}
+                                    <div class="d-flex flex-wrap gap-1">
+                                        {% for order in cell.orders.all %}
+                                            <span class="badge bg-info text-dark me-1 mb-1" data-bs-toggle="tooltip" data-bs-placement="top" 
+                                                  title="ID: {{ order.order_id }} | {{ order.name }} | {{ order.description|truncatechars:50 }} | Размер: {{ order.size }} | Цвет: {{ order.color }} | Цена: {{ order.price }} ₽">
+                                                {{ order.order_id }}
+                                            </span>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <p class="card-text">Ячейка занята, но заказы не найдены.</p>
+                                {% endif %}
                             {% else %}
                                 <div class="text-center text-success py-3">
                                     <i class="fas fa-check-circle fa-2x"></i>
@@ -83,4 +71,18 @@
         {% endif %}
     </div>
 </div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+            html: true
+        });
+    });
+});
+</script>
 {% endblock %}
