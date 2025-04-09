@@ -29,7 +29,7 @@ class HomeView(ListView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['total_pending_orders'] = Order.objects.filter(status='pending').count()
+        context['total_pending_orders'] = Order.objects.filter(reception_status='pending').count()
         return context
 
 
@@ -55,7 +55,7 @@ class PickupProcessView(DetailView):
         # Get pending orders for this customer
         pending_orders = Order.objects.filter(
             customer=customer,
-            status='pending'
+            reception_status='pending'
         ).select_related('storage_cell')
         
         # Add session to the context
@@ -271,6 +271,46 @@ class OrderReceivingView(TemplateView):
         return redirect('order_receiving')
 
 
+class PickupCancelView(UpdateView):
+    model = PickupSession
+    template_name = 'core/pickup_cancel.html'
+    fields = []
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        session = self.get_object()
+        
+        # Get all orders associated with this session
+        context['orders'] = Order.objects.filter(
+            customer=session.customer,
+            status='pending'
+        )
+        
+        # Count orders that have been inspected
+        context['inspected_count'] = context['orders'].filter(is_under_inspection=True).count()
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        session = self.get_object()
+        reason = request.POST.get('cancel_reason', '')
+        
+        # Reset inspection status for all orders
+        Order.objects.filter(
+            customer=session.customer,
+            is_under_inspection=True,
+            status='pending'
+        ).update(is_under_inspection=False)
+        
+        # Mark session as inactive
+        session.is_active = False
+        session.completed_at = timezone.now()
+        session.save()
+        
+        messages.success(request, f'Выдача для клиента {session.customer.name} отменена. Причина: {reason}')
+        return redirect('home')
+
+
 class SystemView(TemplateView):
     template_name = 'core/system.html'
     
@@ -360,15 +400,18 @@ class SystemView(TemplateView):
             
             # Only create order if we have a cell
             if customer_cell:
+                # Create order with fields that match the Order model
                 Order.objects.create(
-                    customer=customer,
                     name=product['name'],
+                    customer=customer,
                     description=faker.text(max_nb_chars=100),
                     size=random.choice(product['sizes']),
                     color=random.choice(product['colors']),
                     price=round(random.uniform(500, 15000), 2),
                     payment_status=random.choice(['prepaid', 'postpaid']),
                     status='pending',
+                    reception_status='pending',  # Add this field to match the Order model
+                    barcode=faker.ean(length=13),  # Add barcode field
                     storage_cell=customer_cell,
                     received_at=timezone.now() - timedelta(days=random.randint(0, 5))
                 )
@@ -408,3 +451,36 @@ def get_customer(request):
             return redirect('customer_search')
     
     return redirect('customer_search')
+
+
+def pickup_cancel(request):
+    """
+    View for cancelling an ongoing pickup session
+    """
+    if request.method == 'POST':
+        session_id = request.POST.get('session_id')
+        cancel_reason = request.POST.get('cancel_reason', '')
+        
+        try:
+            pickup_session = PickupSession.objects.get(id=session_id, is_active=True)
+            
+            # Execute the cancel method which handles all the cleanup
+            pickup_session.cancel(reason=cancel_reason)
+            
+            messages.success(request, f"Выдача для {pickup_session.customer.name} была успешно отменена.")
+            return redirect('home')
+            
+        except PickupSession.DoesNotExist:
+            messages.error(request, "Выбранная сессия выдачи не найдена или уже завершена.")
+            return redirect('home')
+    
+    # Get the active pickup session
+    try:
+        active_session = PickupSession.objects.get(is_active=True)
+        context = {
+            'pickup_session': active_session,
+        }
+        return render(request, 'core/pickup_cancel.html', context)
+    except PickupSession.DoesNotExist:
+        messages.error(request, "Нет активной сессии выдачи для отмены.")
+        return redirect('home')

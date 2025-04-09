@@ -23,8 +23,8 @@ class StorageCellAdmin(admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('order_id', 'name', 'customer', 'price', 'payment_status', 'status', 'storage_cell', 'is_under_inspection')
-    list_filter = ('status', 'payment_status', 'is_under_inspection')
+    list_display = ('order_id', 'name', 'customer', 'reception_status', 'storage_cell', 'is_picked_up')
+    list_filter = ('reception_status', 'is_picked_up')
     search_fields = ('order_id', 'name', 'customer__name')
     date_hierarchy = 'created_at'
 

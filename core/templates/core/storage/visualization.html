@@ -1,0 +1,86 @@
+{% extends 'core/base.html' %}
+{% load django_bootstrap5 %}
+
+{% block title %}Визуализация склада - Box Point{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+        <h4><i class="fas fa-warehouse"></i> Визуализация склада</h4>
+    </div>
+    <div class="card-body">
+        <div class="d-flex justify-content-between mb-3">
+            <div>
+                <span class="badge bg-success me-2">Свободно: {{ free_cells_count }}</span>
+                <span class="badge bg-danger me-2">Занято: {{ occupied_cells_count }}</span>
+                <span class="badge bg-secondary me-2">Всего ячеек: {{ total_cells_count }}</span>
+            </div>
+            <div>
+                <form method="get" class="d-flex">
+                    <input type="text" name="search" class="form-control me-2" placeholder="Поиск по номеру ячейки" value="{{ search_query }}">
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-search"></i> Найти</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3">
+            {% for cell in cells %}
+                <div class="col">
+                    <div class="card h-100 {% if cell.is_occupied %}bg-light border-danger{% else %}border-success{% endif %}">
+                        <div class="card-header d-flex justify-content-between {% if cell.is_occupied %}bg-danger text-white{% else %}bg-success text-white{% endif %}">
+                            <strong>{{ cell.number }}</strong>
+                            <span>{{ cell.is_occupied|yesno:"Занята,Свободна" }}</span>
+                        </div>
+                        <div class="card-body">
+                            {% if cell.is_occupied %}
+                                <h6 class="card-title">Клиент: {{ cell.current_customer.name }}</h6>
+                                <h6>Заказы в ячейке:</h6>
+                                <div class="list-group">
+                                    {% for order in cell.orders.all %}
+                                        <div class="list-group-item list-group-item-action flex-column align-items-start p-2">
+                                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                                <small class="text-muted">{{ order.order_id }}</small>
+                                                <span class="badge {% if order.received_at %}bg-success{% else %}bg-warning{% endif %}">
+                                                    {{ order.received_at|yesno:"Принят,Ожидает приемки" }}
+                                                </span>
+                                            </div>
+                                            <p class="m-0">{{ order.name }}</p>
+                                            {% if order.size or order.color %}
+                                                <small class="text-muted">
+                                                    {% if order.size %}Размер: {{ order.size }}{% endif %}
+                                                    {% if order.color %}{% if order.size %} | {% endif %}Цвет: {{ order.color }}{% endif %}
+                                                </small>
+                                            {% endif %}
+                                        </div>
+                                    {% empty %}
+                                        <div class="text-center text-muted py-2">
+                                            <small>Нет активных заказов</small>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center text-success py-3">
+                                    <i class="fas fa-check-circle fa-2x"></i>
+                                    <p class="mt-2">Ячейка свободна</p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-12 text-center py-5">
+                    <i class="fas fa-exclamation-circle fa-3x text-muted mb-3"></i>
+                    <h5>Ячейки хранения не найдены</h5>
+                    <p>Сначала создайте ячейки хранения в разделе "Система"</p>
+                </div>
+            {% endfor %}
+        </div>
+        
+        {% if is_paginated %}
+        <div class="mt-4">
+            {% bootstrap_pagination page_obj %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

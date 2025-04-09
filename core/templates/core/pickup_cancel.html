@@ -1,0 +1,112 @@
+{% extends 'core/base.html' %}
+{% load django_bootstrap5 %}
+
+{% block title %}Отмена выдачи - Box Point{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-warning">
+        <h4><i class="fas fa-times-circle"></i> Отмена выдачи</h4>
+    </div>
+    <div class="card-body">
+        {% if session %}
+            <div class="alert alert-warning">
+                <h5><i class="fas fa-exclamation-triangle"></i> Вы собираетесь отменить выдачу для клиента <strong>{{ session.customer.name }}</strong></h5>
+                <p>При отмене выдачи все заказы вернутся в статус "Ожидает получения". Вы уверены, что хотите продолжить?</p>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5>Информация о выдаче</h5>
+                </div>
+                <div class="card-body">
+                    <table class="table">
+                        <tr>
+                            <th style="width: 200px;">Клиент:</th>
+                            <td>{{ session.customer.name }}</td>
+                        </tr>
+                        <tr>
+                            <th>Телефон:</th>
+                            <td>{{ session.customer.phone }}</td>
+                        </tr>
+                        <tr>
+                            <th>Дата начала:</th>
+                            <td>{{ session.started_at|date:"d.m.Y H:i" }}</td>
+                        </tr>
+                        <tr>
+                            <th>Количество заказов:</th>
+                            <td>{{ session.orders.count }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5>Заказы в выдаче</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>ID заказа</th>
+                                    <th>Наименование</th>
+                                    <th>Размер</th>
+                                    <th>Цвет</th>
+                                    <th>Ячейка</th>
+                                    <th>Статус</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in session.orders.all %}
+                                <tr>
+                                    <td>{{ order.order_id }}</td>
+                                    <td>{{ order.name }}</td>
+                                    <td>{{ order.size|default:"-" }}</td>
+                                    <td>{{ order.color|default:"-" }}</td>
+                                    <td>{{ order.storage_cell.number|default:"-" }}</td>
+                                    <td>
+                                        <span class="badge {% if order.reception_status == 'received' %}bg-success{% else %}bg-warning{% endif %}">
+                                            {{ order.get_reception_status_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center">Нет заказов в выдаче</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <form method="post">
+                {% csrf_token %}
+                <div class="form-group mb-3">
+                    <label for="cancel_reason">Причина отмены:</label>
+                    <textarea name="cancel_reason" id="cancel_reason" class="form-control" rows="3" required></textarea>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <a href="{% url 'pickup_process' %}" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Назад
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-times-circle"></i> Отменить выдачу
+                    </button>
+                </div>
+            </form>
+        {% else %}
+            <div class="alert alert-danger">
+                <h5>Ошибка!</h5>
+                <p>Активная выдача не найдена</p>
+            </div>
+            <a href="{% url 'home' %}" class="btn btn-primary">
+                <i class="fas fa-home"></i> На главную
+            </a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
