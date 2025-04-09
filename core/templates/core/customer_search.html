@@ -1,12 +1,11 @@
 {% extends 'core/base.html' %}
 
-{% load fontawesome_5 %}
 {% load django_bootstrap5 %}
 
 {% block title %}Box Point - Поиск клиента{% endblock %}
 
 {% block content %}
-<h1>{% fontawesome_icon 'user-search' 'fas' %} Поиск клиента</h1>
+<h1><i class="fas fa-user-search"></i> Поиск клиента</h1>
 <p class="lead">Введите ID клиента для начала процесса выдачи заказов</p>
 <hr>
 
@@ -14,7 +13,7 @@
     <div class="col-md-6">
         <div class="card shadow-sm">
             <div class="card-header bg-primary text-white">
-                {% fontawesome_icon 'id-card' 'fas' %} Введите ID клиента
+                <i class="fas fa-id-card"></i> Введите ID клиента
             </div>
             <div class="card-body">
                 <form method="get" action="{% url 'get_customer' %}">
@@ -24,7 +23,7 @@
                             <input type="text" class="form-control form-control-lg" id="customer_id" name="customer_id" 
                                 autofocus required placeholder="Введите ID клиента">
                             <button type="submit" class="btn btn-primary">
-                                {% fontawesome_icon 'search' 'fas' %} Найти
+                                <i class="fas fa-search"></i> Найти
                             </button>
                         </div>
                     </div>
@@ -41,7 +40,7 @@
     <div class="col-md-6">
         <div class="d-grid">
             <a href="{% url 'home' %}" class="btn btn-outline-secondary">
-                {% fontawesome_icon 'arrow-left' 'fas' %} Вернуться на главную
+                <i class="fas fa-arrow-left"></i> Вернуться на главную
             </a>
         </div>
     </div>

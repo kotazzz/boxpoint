@@ -1,15 +1,14 @@
 {% extends 'core/base.html' %}
 
-{% load fontawesome_5 %}
 {% load django_bootstrap5 %}
 
 {% block title %}Box Point - Поиск заказа{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center">
-    <h1>{% fontawesome_icon 'search' 'fas' %} Поиск заказа</h1>
+    <h1><i class="fas fa-search"></i> Поиск заказа</h1>
     <a href="{% url 'home' %}" class="btn btn-outline-secondary">
-        {% fontawesome_icon 'home' 'fas' %} На главную
+        <i class="fas fa-home"></i> На главную
     </a>
 </div>
 <hr>
@@ -18,7 +17,7 @@
     <div class="col-md-6">
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-primary text-white">
-                {% fontawesome_icon 'search' 'fas' %} Поиск по ID заказа
+                <i class="fas fa-search"></i> Поиск по ID заказа
             </div>
             <div class="card-body">
                 <form method="get" action="{% url 'order_search' %}">
@@ -28,7 +27,7 @@
                             <input type="text" class="form-control form-control-lg" id="order_id" name="order_id" 
                                 autofocus required placeholder="Введите ID заказа" value="{{ request.GET.order_id|default:'' }}">
                             <button type="submit" class="btn btn-primary">
-                                {% fontawesome_icon 'search' 'fas' %} Найти
+                                <i class="fas fa-search"></i> Найти
                             </button>
                         </div>
                     </div>
@@ -39,7 +38,7 @@
         {% if order %}
             <div class="card border-success">
                 <div class="card-header bg-success text-white">
-                    {% fontawesome_icon 'info-circle' 'fas' %} Информация о заказе
+                    <i class="fas fa-info-circle"></i> Информация о заказе
                 </div>
                 <div class="card-body">
                     <h5 class="card-title">{{ order.name }}</h5>
@@ -125,7 +124,7 @@
                     {% if order.status == 'pending' and request.user.is_staff %}
                     <div class="d-grid gap-2">
                         <a href="{% url 'pickup_process' pk=order.customer.id %}" class="btn btn-primary">
-                            {% fontawesome_icon 'box-open' 'fas' %} Перейти к выдаче
+                            <i class="fas fa-box-open"></i> Перейти к выдаче
                         </a>
                     </div>
                     {% endif %}
@@ -133,7 +132,7 @@
             </div>
         {% elif not_found and request.GET.order_id %}
             <div class="alert alert-danger" role="alert">
-                <h4 class="alert-heading">{% fontawesome_icon 'exclamation-triangle' 'fas' %} Заказ не найден</h4>
+                <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Заказ не найден</h4>
                 <p>Заказ с ID <strong>{{ request.GET.order_id }}</strong> не найден в системе.</p>
                 <hr>
                 <p class="mb-0">Пожалуйста, проверьте правильность введенного ID заказа и попробуйте снова.</p>

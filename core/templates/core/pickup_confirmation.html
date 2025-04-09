@@ -1,15 +1,14 @@
 {% extends 'core/base.html' %}
 
-{% load fontawesome_5 %}
 {% load django_bootstrap5 %}
 
 {% block title %}Box Point - Подтверждение выдачи{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center">
-    <h1>{% fontawesome_icon 'check-circle' 'fas' %} Подтверждение выдачи</h1>
+    <h1><i class="fas fa-check-circle"></i> Подтверждение выдачи</h1>
     <a href="{% url 'pickup_process' pk=object.customer.id %}" class="btn btn-outline-secondary">
-        {% fontawesome_icon 'arrow-left' 'fas' %} Вернуться к списку заказов
+        <i class="fas fa-arrow-left"></i> Вернуться к списку заказов
     </a>
 </div>
 <hr>
@@ -18,7 +17,7 @@
     <div class="col-md-8">
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
-                {% fontawesome_icon 'box-open' 'fas' %} Сводка по заказам
+                <i class="fas fa-box-open"></i> Сводка по заказам
             </div>
             <div class="card-body">
                 <div class="row">
@@ -52,7 +51,7 @@
 
         <div class="card mb-4">
             <div class="card-header bg-success text-white">
-                {% fontawesome_icon 'money-bill' 'fas' %} Расчет
+                <i class="fas fa-money-bill"></i> Расчет
             </div>
             <div class="card-body">
                 <table class="table">
@@ -85,7 +84,7 @@
             
             <div class="card mb-4">
                 <div class="card-header bg-info text-white">
-                    {% fontawesome_icon 'shopping-bag' 'fas' %} Упаковка
+                    <i class="fas fa-shopping-bag"></i> Упаковка
                 </div>
                 <div class="card-body">
                     <div class="form-check form-switch mb-3">
@@ -101,7 +100,7 @@
             
             <div class="card">
                 <div class="card-header bg-warning text-dark">
-                    {% fontawesome_icon 'info-circle' 'fas' %} Информация
+                    <i class="fas fa-info-circle"></i> Информация
                 </div>
                 <div class="card-body">
                     <p>После подтверждения выдачи:</p>
@@ -115,10 +114,10 @@
             
             <div class="d-grid gap-2 mt-4">
                 <button type="submit" class="btn btn-success btn-lg">
-                    {% fontawesome_icon 'check-double' 'fas' %} Завершить выдачу
+                    <i class="fas fa-check-double"></i> Завершить выдачу
                 </button>
                 <a href="{% url 'pickup_process' pk=object.customer.id %}" class="btn btn-outline-secondary">
-                    {% fontawesome_icon 'arrow-left' 'fas' %} Вернуться к заказам
+                    <i class="fas fa-arrow-left"></i> Вернуться к заказам
                 </a>
             </div>
         </form>

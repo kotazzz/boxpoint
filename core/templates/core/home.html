@@ -1,18 +1,16 @@
 {% extends 'core/base.html' %}
 
-{% load fontawesome_5 %}
-
 {% block title %}Box Point - Главная{% endblock %}
 
 {% block content %}
-<h1>{% fontawesome_icon 'home' 'fas' %} Пункт выдачи заказов</h1>
+<h1><i class="fas fa-home"></i> Пункт выдачи заказов</h1>
 <hr>
 
 <div class="row">
     <div class="col-md-8">
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
-                {% fontawesome_icon 'box-open' 'fas' %} Активные выдачи
+                <i class="fas fa-box-open"></i> Активные выдачи
             </div>
             <div class="card-body">
                 {% if active_sessions %}
@@ -36,7 +34,7 @@
                                     <td>{{ session.started_at|date:"d.m.Y H:i" }}</td>
                                     <td>
                                         <a href="{% url 'pickup_process' pk=session.customer.id %}" class="btn btn-sm btn-primary">
-                                            {% fontawesome_icon 'arrow-right' 'fas' %} Продолжить
+                                            <i class="fas fa-arrow-right"></i> Продолжить
                                         </a>
                                     </td>
                                 </tr>
@@ -54,7 +52,7 @@
     <div class="col-md-4">
         <div class="card mb-4">
             <div class="card-header bg-info text-white">
-                {% fontawesome_icon 'info-circle' 'fas' %} Статистика
+                <i class="fas fa-info-circle"></i> Статистика
             </div>
             <div class="card-body">
                 <div class="d-flex justify-content-between mb-3">
@@ -64,13 +62,13 @@
                 <hr>
                 <div class="d-grid">
                     <a href="{% url 'customer_search' %}" class="btn btn-primary mb-2">
-                        {% fontawesome_icon 'user-plus' 'fas' %} Новая выдача
+                        <i class="fas fa-user-plus"></i> Новая выдача
                     </a>
                     <a href="{% url 'order_receiving' %}" class="btn btn-success mb-2">
-                        {% fontawesome_icon 'truck-loading' 'fas' %} Прием заказов
+                        <i class="fas fa-truck-loading"></i> Прием заказов
                     </a>
                     <a href="{% url 'order_search' %}" class="btn btn-secondary">
-                        {% fontawesome_icon 'search' 'fas' %} Поиск заказа
+                        <i class="fas fa-search"></i> Поиск заказа
                     </a>
                 </div>
             </div>
@@ -78,12 +76,12 @@
         
         <div class="card">
             <div class="card-header bg-dark text-white">
-                {% fontawesome_icon 'cogs' 'fas' %} Управление
+                <i class="fas fa-cogs"></i> Управление
             </div>
             <div class="card-body">
                 <div class="d-grid">
                     <a href="{% url 'system' %}" class="btn btn-outline-dark">
-                        {% fontawesome_icon 'tools' 'fas' %} Системные настройки
+                        <i class="fas fa-tools"></i> Системные настройки
                     </a>
                 </div>
             </div>

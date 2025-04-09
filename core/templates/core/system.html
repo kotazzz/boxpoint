@@ -1,21 +1,20 @@
 {% extends 'core/base.html' %}
 
-{% load fontawesome_5 %}
 {% load django_bootstrap5 %}
 
 {% block title %}Box Point - Системные настройки{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center">
-    <h1>{% fontawesome_icon 'cogs' 'fas' %} Системные настройки</h1>
+    <h1><i class="fas fa-cogs"></i> Системные настройки</h1>
     <a href="{% url 'home' %}" class="btn btn-outline-secondary">
-        {% fontawesome_icon 'home' 'fas' %} На главную
+        <i class="fas fa-home"></i> На главную
     </a>
 </div>
 <hr>
 
 <div class="alert alert-warning">
-    <h4 class="alert-heading">{% fontawesome_icon 'exclamation-triangle' 'fas' %} Внимание!</h4>
+    <h4 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Внимание!</h4>
     <p>Это скрытая системная страница для управления тестовыми данными. Используйте с осторожностью.</p>
 </div>
 
@@ -23,7 +22,7 @@
     <div class="col-md-4">
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
-                {% fontawesome_icon 'database' 'fas' %} Текущие данные
+                <i class="fas fa-database"></i> Текущие данные
             </div>
             <div class="card-body">
                 <div class="d-flex align-items-center justify-content-between mb-3">
@@ -43,7 +42,7 @@
         
         <div class="card">
             <div class="card-header bg-danger text-white">
-                {% fontawesome_icon 'trash' 'fas' %} Удаление данных
+                <i class="fas fa-trash"></i> Удаление данных
             </div>
             <div class="card-body">
                 <form method="post">
@@ -56,7 +55,7 @@
                     
                     <div class="d-grid">
                         <button type="submit" class="btn btn-danger" onclick="return confirm('Вы уверены? Это удалит все данные из системы!');">
-                            {% fontawesome_icon 'trash' 'fas' %} Удалить все данные
+                            <i class="fas fa-trash"></i> Удалить все данные
                         </button>
                     </div>
                 </form>
@@ -67,7 +66,7 @@
     <div class="col-md-8">
         <div class="card">
             <div class="card-header bg-success text-white">
-                {% fontawesome_icon 'plus-circle' 'fas' %} Генерация тестовых данных
+                <i class="fas fa-plus-circle"></i> Генерация тестовых данных
             </div>
             <div class="card-body">
                 <ul class="nav nav-tabs mb-3" id="myTab" role="tablist">
@@ -106,7 +105,7 @@
                             
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary">
-                                    {% fontawesome_icon 'users' 'fas' %} Сгенерировать клиентов
+                                    <i class="fas fa-users"></i> Сгенерировать клиентов
                                 </button>
                             </div>
                         </form>
@@ -128,7 +127,7 @@
                             
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary">
-                                    {% fontawesome_icon 'boxes' 'fas' %} Сгенерировать заказы
+                                    <i class="fas fa-boxes"></i> Сгенерировать заказы
                                 </button>
                             </div>
                         </form>
@@ -150,7 +149,7 @@
                             
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary">
-                                    {% fontawesome_icon 'archive' 'fas' %} Сгенерировать ячейки
+                                    <i class="fas fa-archive"></i> Сгенерировать ячейки
                                 </button>
                             </div>
                         </form>
@@ -190,7 +189,7 @@
                             
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary">
-                                    {% fontawesome_icon 'list' 'fas' %} Создать причины возврата
+                                    <i class="fas fa-list"></i> Создать причины возврата
                                 </button>
                             </div>
                         </form>
