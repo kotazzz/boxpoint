@@ -15,9 +15,54 @@
 
 <div class="row mb-4">
     <div class="col-md-6">
+        <!-- Pending orders section -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <i class="fas fa-clock"></i> Ожидающие приема заказы
+            </div>
+            <div class="card-body">
+                {% if pending_orders %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Наименование</th>
+                                <th>Клиент</th>
+                                <th>Действие</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in pending_orders %}
+                            <tr>
+                                <td><small>{{ order.order_id }}</small></td>
+                                <td>{{ order.name|truncatechars:20 }}</td>
+                                <td>{{ order.customer.name|truncatechars:20 }}</td>
+                                <td>
+                                    <form method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="fas fa-check"></i> Принять
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle"></i> Нет заказов, ожидающих приема.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
         <div class="card mb-4">
             <div class="card-header bg-primary text-white">
-                <i class="fas fa-box"></i> Прием нового заказа
+                <i class="fas fa-box"></i> Прием нового заказа по ID
             </div>
             <div class="card-body">
                 <form method="post">
@@ -98,7 +143,7 @@
                             {% for order in recent_orders %}
                             <tr>
                                 <td><small>{{ order.order_id }}</small></td>
-                                <td>{{ order.name|truncatechars:30 }}</td>
+                                <td>{{ order.name|truncatechars:20 }}</td>
                                 <td>{{ order.customer.name|truncatechars:20 }}</td>
                                 <td>
                                     <span class="badge bg-secondary">{{ order.storage_cell.number }}</span>

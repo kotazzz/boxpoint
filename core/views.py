@@ -224,6 +224,12 @@ class OrderReceivingView(TemplateView):
             received_at__isnull=False
         ).order_by('-received_at')[:10]
         
+        # Get pending orders that haven't been received yet
+        context['pending_orders'] = Order.objects.filter(
+            received_at__isnull=True,
+            status='pending'
+        ).select_related('customer').order_by('created_at')
+        
         return context
     
     def post(self, request, *args, **kwargs):
