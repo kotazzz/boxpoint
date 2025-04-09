@@ -400,6 +400,10 @@ class SystemView(TemplateView):
             
             # Only create order if we have a cell
             if customer_cell:
+                # Randomly decide if the order is already received or still pending for reception
+                is_received = random.choice([True, False])
+                received_timestamp = timezone.now() - timedelta(days=random.randint(0, 5)) if is_received else None
+                
                 # Create order with fields that match the Order model
                 Order.objects.create(
                     name=product['name'],
@@ -410,10 +414,10 @@ class SystemView(TemplateView):
                     price=round(random.uniform(500, 15000), 2),
                     payment_status=random.choice(['prepaid', 'postpaid']),
                     status='pending',
-                    reception_status='pending',  # Add this field to match the Order model
-                    barcode=faker.ean(length=13),  # Add barcode field
+                    reception_status='received' if is_received else 'pending',
+                    barcode=faker.ean(length=13),
                     storage_cell=customer_cell,
-                    received_at=timezone.now() - timedelta(days=random.randint(0, 5))
+                    received_at=received_timestamp
                 )
     
     def _generate_cells(self, count):
