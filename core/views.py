@@ -1,4 +1,5 @@
 from django.db import models
+from django.http import Http404
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.views.generic import TemplateView, ListView, DetailView, UpdateView
@@ -150,19 +151,32 @@ class PickupProcessView(DetailView):
         customer = self.get_object()
         
         # Get session for this customer
-        session = get_object_or_404(
-            PickupSession,
+        session, created = PickupSession.objects.get_or_create(
             customer=customer,
-            is_active=True
+            is_active=True,
+            defaults={'started_at': timezone.now()}
         )
         
         # Get selected orders
         order_ids = request.POST.getlist('deliver_orders')
         
+        # Проверяем наличие товаров, отмеченных на возврат
+        marked_for_return_exist = Order.objects.filter(
+            customer=customer,
+            status='pending',
+            reception_status='received',
+            marked_for_return=True
+        ).exists()
+        
         # Redirect to confirmation page with selected orders
         if order_ids:
             # Store selected orders in session
             request.session['selected_order_ids'] = order_ids
+            return redirect('pickup_confirmation', pk=session.id)
+        elif marked_for_return_exist:
+            # Если нет выбранных заказов, но есть отмеченные на возврат - всё равно направляем на страницу подтверждения
+            request.session['selected_order_ids'] = []
+            messages.info(request, 'Нет заказов для выдачи, но обнаружены заказы, отмеченные на возврат.')
             return redirect('pickup_confirmation', pk=session.id)
         else:
             messages.warning(request, 'Не выбрано ни одного заказа для выдачи.')
@@ -471,6 +485,21 @@ class PickupCancelView(UpdateView):
     template_name = 'core/pickup_cancel.html'
     fields = []
     
+    def get_object(self, queryset=None):
+        # Получаем ID клиента из URL
+        customer_id = self.kwargs.get('pk')
+        # Получаем активную сессию выдачи для этого клиента
+        try:
+            session = PickupSession.objects.get(customer_id=customer_id, is_active=True)
+            return session
+        except PickupSession.DoesNotExist:
+            # If no active session, try to get any session for this customer
+            try:
+                session = PickupSession.objects.filter(customer_id=customer_id).latest('started_at')
+                return session
+            except PickupSession.DoesNotExist:
+                raise Http404("Не найдена активная сессия выдачи для этого клиента.")
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         session = self.get_object()
@@ -489,6 +518,17 @@ class PickupCancelView(UpdateView):
     def post(self, request, *args, **kwargs):
         session = self.get_object()
         reason = request.POST.get('cancel_reason', '')
+        
+        # Check if any orders are marked for return
+        orders_marked_for_return = Order.objects.filter(
+            customer=session.customer,
+            status='pending',
+            marked_for_return=True
+        ).exists()
+        
+        if orders_marked_for_return:
+            messages.error(request, "Нельзя отменить выдачу, если есть товары, отмеченные на возврат. Подтвердите выдачу, чтобы завершить процесс возврата.")
+            return redirect('pickup_process', pk=session.customer.pk)
         
         # Reset inspection status for all orders
         Order.objects.filter(
@@ -666,39 +706,6 @@ def get_customer(request):
                 return redirect('customer_search')
     
     return redirect('customer_search')
-
-
-def pickup_cancel(request):
-    """
-    View for cancelling an ongoing pickup session
-    """
-    if request.method == 'POST':
-        session_id = request.POST.get('session_id')
-        cancel_reason = request.POST.get('cancel_reason', '')
-        
-        try:
-            pickup_session = PickupSession.objects.get(id=session_id, is_active=True)
-            
-            # Execute the cancel method which handles all the cleanup
-            pickup_session.cancel(reason=cancel_reason)
-            
-            messages.success(request, f"Выдача для {pickup_session.customer.name} была успешно отменена.")
-            return redirect('home')
-            
-        except PickupSession.DoesNotExist:
-            messages.error(request, "Выбранная сессия выдачи не найдена или уже завершена.")
-            return redirect('home')
-    
-    # Get the active pickup session
-    try:
-        active_session = PickupSession.objects.get(is_active=True)
-        context = {
-            'pickup_session': active_session,
-        }
-        return render(request, 'core/pickup_cancel.html', context)
-    except PickupSession.DoesNotExist:
-        messages.error(request, "Нет активной сессии выдачи для отмены.")
-        return redirect('home')
 
 
 class PickupCloseView(UpdateView):
