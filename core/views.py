@@ -832,22 +832,55 @@ class StorageVisualizationView(TemplateView):
         
         # Поиск по номеру ячейки
         search_query = self.request.GET.get('search', '')
-        if (search_query):
+        if search_query:
             cells = StorageCell.objects.filter(number__icontains=search_query).order_by('number')
         else:
             cells = StorageCell.objects.all().order_by('number')
-            
-        # Добавляем метрики
-        context['cells'] = cells
-        context['total_cells_count'] = cells.count()
-        context['occupied_cells_count'] = cells.filter(is_occupied=True).count()
-        context['free_cells_count'] = cells.filter(is_occupied=False).count()
-        context['search_query'] = search_query
         
         # Предзагружаем связанные заказы для снижения количества запросов к БД
-        # Убедимся, что мы предварительно загружаем все заказы, а затем отфильтруем их в шаблоне
-        # или с помощью аннотации, поскольку filter в prefetch не работает согласно ожиданиям
-        cells = cells.prefetch_related('orders')
+        # Загружаем только активные заказы (не выданные и не возвращенные)
+        cells = cells.prefetch_related(
+            models.Prefetch(
+                'orders',
+                queryset=Order.objects.filter(
+                    status='pending', 
+                    reception_status='received'
+                )
+            )
+        )
+        
+        # Аннотируем ячейки с дополнительной информацией
+        cells_with_extended_info = []
+        
+        for cell in cells:
+            # Проверяем заказы в ячейке 
+            active_orders = cell.orders.all()  # Здесь уже только активные заказы
+            
+            # Дополнительные статусы
+            cell.has_active_orders = active_orders.exists()
+            cell.is_reserved = cell.is_reserved if hasattr(cell, 'is_reserved') else False
+            
+            # Удаляем проверки на выданные и возвращенные заказы, так как они уже отфильтрованы
+            cell.has_return_orders = False
+            cell.has_delivered_orders = False
+            
+            cells_with_extended_info.append(cell)
+            
+        # Добавляем метрики
+        context['cells'] = cells_with_extended_info
+        context['total_cells_count'] = len(cells_with_extended_info)
+        context['occupied_cells_count'] = sum(1 for cell in cells_with_extended_info if cell.is_occupied)
+        context['free_cells_count'] = sum(1 for cell in cells_with_extended_info if not cell.is_occupied)
+        context['reserved_cells'] = sum(1 for cell in cells_with_extended_info if cell.is_reserved)
+        context['search_query'] = search_query
+        
+        # Вычисляем процентные соотношения для прогрессбара
+        if context['total_cells_count'] > 0:
+            context['free_percentage'] = (context['free_cells_count'] / context['total_cells_count']) * 100
+            context['occupied_percentage'] = (context['occupied_cells_count'] / context['total_cells_count']) * 100
+        else:
+            context['free_percentage'] = 0
+            context['occupied_percentage'] = 0
         
         return context
 
