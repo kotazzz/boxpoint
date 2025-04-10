@@ -311,13 +311,26 @@ class PickupConfirmationView(UpdateView):
     
     def form_valid(self, form):
         session = form.save(commit=False)
-        # Get selected order IDs from the current form submission
+        
+        # Получаем список ID заказов для выдачи из формы
         selected_order_ids = self.request.POST.getlist('deliver_orders')
         
-        # Use the complete() method on the PickupSession model to process orders
+        # Добавляем информацию в журнал для отладки
+        print(f"Debug: Selected order IDs for delivery: {selected_order_ids}")
+        
+        # Убедимся, что все заказы клиента связаны с этой сессией
+        customer_orders = Order.objects.filter(
+            customer=session.customer,
+            status='pending',
+            reception_status='received'
+        )
+        session.save()  # Сохраняем сначала сессию, чтобы иметь возможность добавить заказы
+        session.orders.add(*customer_orders)
+        
+        # Используем метод complete() для обработки заказов
         session.complete(selected_order_ids)
-                
-        # Generate summary information for success message
+        
+        # Генерируем информацию для сообщения об успехе
         customer = session.customer
         delivered_count = Order.objects.filter(
             customer=customer,

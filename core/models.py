@@ -285,6 +285,19 @@ class PickupSession(models.Model):
     def complete(self, selected_order_ids=None):
         """Complete the pickup session and process all orders"""
         now = timezone.now()
+        
+        # Ensure the current orders are properly associated with this session
+        # This query gets all pending and received orders for this customer
+        customer_orders = Order.objects.filter(
+            customer=self.customer,
+            status='pending',
+            reception_status='received'
+        )
+        
+        # Make sure these orders are associated with this session
+        self.orders.add(*customer_orders)
+        
+        # Now get all orders for this session
         orders = self.orders.all()
         
         # Process orders marked for return
@@ -294,8 +307,12 @@ class PickupSession(models.Model):
             
         # Process orders for delivery
         if selected_order_ids:
+            # Convert all IDs to strings for consistent comparison
+            selected_order_ids = [str(id) for id in selected_order_ids]
+            
             for order in orders.filter(marked_for_return=False):
                 if str(order.id) in selected_order_ids:
+                    # Mark as delivered if selected
                     order.mark_delivered()
         
         # Mark session as completed
