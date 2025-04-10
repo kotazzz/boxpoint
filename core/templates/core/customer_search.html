@@ -1,68 +1,240 @@
 {% extends 'core/base.html' %}
 {% load django_bootstrap5 %}
 
+{% load math_filters %}
 {% block title %}Поиск клиентов - Box Point{% endblock %}
 
-{% block content %}
-<div class="card mb-4">
-    <div class="card-header bg-primary text-white">
-        <h4><i class="fas fa-users"></i> Поиск клиентов</h4>
-    </div>
-    <div class="card-body">
-        <form method="get" class="mb-3">
-            <div class="input-group">
-                <input type="text" class="form-control" name="q" placeholder="Поиск по имени или телефону" value="{{ search_query }}">
-                <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Найти</button>
-            </div>
-        </form>
+{% block extra_head %}
+<style>
+    .search-container {
+        position: relative;
+    }
+    
+    .search-results {
+        border-radius: var(--border-radius);
+        overflow: hidden;
+    }
+    
+    .customer-card {
+        transition: all 0.2s ease;
+        border-left: 3px solid transparent;
+    }
+    
+    .customer-card:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+        border-left-color: var(--primary-color);
+    }
+    
+    .customer-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: #fff;
+        font-size: 1.2rem;
+        flex-shrink: 0;
+    }
+    
+    .empty-state {
+        padding: 2rem;
+        text-align: center;
+    }
+    
+    .empty-state-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: var(--secondary-color);
+    }
+    
+    /* Стили для фильтров быстрого доступа */
+    .filter-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .filter-pill {
+        border-radius: 2rem;
+        padding: 0.3rem 0.8rem;
+        font-size: 0.85rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid var(--border-color);
+        background-color: #fff;
+    }
+    
+    .dark-mode .filter-pill {
+        background-color: var(--dark-card);
+    }
+    
+    .filter-pill:hover, .filter-pill.active {
+        background-color: var(--primary-color);
+        color: #fff;
+    }
+    
+    /* Адаптивные стили */
+    @media (max-width: 768px) {
+        .action-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .action-buttons .btn {
+            width: 100%;
+        }
+        
+        .customer-info h5 {
+            font-size: 1rem;
+        }
+    }
+</style>
+{% endblock %}
 
-        {% if search_query %}
-            <h5>Результаты поиска для: "{{ search_query }}"</h5>
-        {% endif %}
+{% block content %}
+<div class="row mb-3">
+    <div class="col-md-12">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1 class="h4 mb-0"><i class="fas fa-users me-2"></i> Поиск клиентов</h1>
+                    <a href="{% url 'home' %}" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i> На главную
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="search-container">
+            <form method="get" class="mb-3">
+                <div class="input-group input-group-lg">
+                    <span class="input-group-text bg-white border-end-0">
+                        <i class="fas fa-search text-muted"></i>
+                    </span>
+                    <input type="text" class="form-control border-start-0" name="q" placeholder="Поиск по имени или телефону" value="{{ search_query }}" autofocus>
+                    <button class="btn btn-primary" type="submit">Найти</button>
+                </div>
+                <div class="mt-2 text-muted small">
+                    <i class="fas fa-info-circle me-1"></i> Введите имя, фамилию или телефон клиента для поиска
+                </div>
+            </form>
+
+            {% if search_query %}
+            <div class="filter-pills">
+                <div class="filter-pill active" data-filter="all">Все результаты</div>
+                <div class="filter-pill" data-filter="has-orders">Есть заказы</div>
+                <div class="filter-pill" data-filter="no-orders">Нет заказов</div>
+            </div>
+            {% endif %}
+        </div>
 
         {% if customers %}
-            <div class="table-responsive">
-                <table class="table table-striped table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Имя</th>
-                            <th>Телефон</th>
-                            <th>Email</th>
-                            <th>Товаров к выдаче</th>
-                            <th>Действия</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for customer in customers %}
-                            <tr>
-                                <td>{{ customer.name }}</td>
-                                <td>{{ customer.phone }}</td>
-                                <td>{{ customer.email }}</td>
-                                <td><span class="badge bg-success">{{ customer.pending_count }}</span></td>
-                                <td>
-                                    <a href="{% url 'pickup_process' customer.pk %}" class="btn btn-sm btn-success"><i class="fas fa-hand-holding-box"></i> Выдача</a>
-                                    <a href="{% url 'customer_detail' customer.pk %}" class="btn btn-sm btn-info"><i class="fas fa-user"></i> Детали</a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="search-results">
+                <div class="list-group list-group-flush">
+                    {% for customer in customers %}
+                        <div class="list-group-item p-3 customer-card" data-pending="{{ customer.pending_count }}">
+                            <div class="d-flex align-items-center">
+                                <div class="customer-avatar me-3" style="background-color: {{ customer.name|hash_to_color }};">
+                                    {{ customer.name|first|upper }}
+                                </div>
+                                <div class="customer-info flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap">
+                                        <h5 class="mb-0">{{ customer.name }}</h5>
+                                        <div class="ms-auto d-flex align-items-center">
+                                            <span class="badge {% if customer.pending_count > 0 %}bg-success{% else %}bg-secondary{% endif %} me-2">
+                                                <i class="fas fa-box-open me-1"></i> {{ customer.pending_count }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-1 text-muted small d-flex flex-wrap gap-3">
+                                        <span><i class="fas fa-phone me-1"></i> {{ customer.phone }}</span>
+                                        {% if customer.email %}<span><i class="fas fa-envelope me-1"></i> {{ customer.email }}</span>{% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-end mt-3 action-buttons">
+                                <a href="{% url 'pickup_process' customer.pk %}" class="btn btn-primary btn-sm me-2">
+                                    <i class="fas fa-hand-holding-box me-1"></i> Выдача заказов
+                                </a>
+                                <a href="{% url 'customer_detail' customer.pk %}" class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-user me-1"></i> Профиль клиента
+                                </a>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
             </div>
 
             {% if is_paginated %}
-                {% bootstrap_pagination page_obj %}
+                <div class="mt-3">
+                    {% bootstrap_pagination page_obj %}
+                </div>
             {% endif %}
         {% else %}
             {% if search_query %}
-                <div class="alert alert-warning">
-                    <p class="mb-0">Клиенты с товарами к выдаче не найдены по запросу "{{ search_query }}".</p>
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h4>Клиенты не найдены</h4>
+                    <p class="text-muted mb-3">По запросу "{{ search_query }}" клиенты не найдены. Попробуйте изменить запрос.</p>
+                    <a href="{% url 'customer_search' %}" class="btn btn-primary">
+                        <i class="fas fa-redo me-1"></i> Сбросить поиск
+                    </a>
                 </div>
             {% else %}
-                <div class="alert alert-info">
-                    <p class="mb-0">Введите запрос для поиска клиентов с товарами, готовыми к выдаче.</p>
+                <div class="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <h4>Найдите клиента для выдачи заказа</h4>
+                    <p class="text-muted mb-3">Введите имя или телефон клиента в поле поиска выше</p>
                 </div>
             {% endif %}
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Обработка фильтров
+        const filterPills = document.querySelectorAll('.filter-pill');
+        const customerCards = document.querySelectorAll('.customer-card');
+        
+        filterPills.forEach(pill => {
+            pill.addEventListener('click', function() {
+                // Убираем активный класс у всех фильтров
+                filterPills.forEach(p => p.classList.remove('active'));
+                // Добавляем активный класс текущему фильтру
+                this.classList.add('active');
+                
+                const filter = this.dataset.filter;
+                
+                customerCards.forEach(card => {
+                    const pendingCount = parseInt(card.dataset.pending, 10);
+                    
+                    if (filter === 'all') {
+                        card.style.display = 'block';
+                    } else if (filter === 'has-orders' && pendingCount > 0) {
+                        card.style.display = 'block';
+                    } else if (filter === 'no-orders' && pendingCount === 0) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            });
+        });
+    });
+</script>
 {% endblock %}

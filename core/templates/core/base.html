@@ -17,10 +17,13 @@
             --warning-color: #ffc107;
             --danger-color: #dc3545;
             --light-gray: #f8f9fa;
+            --dark-bg: #212529;
+            --dark-card: #2c3034;
             --border-color: rgba(0,0,0,0.1);
             --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
             --box-shadow-hover: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-            --border-radius: 0.375rem;
+            --border-radius: 0.5rem;
+            --transition-speed: 0.3s;
         }
         
         body {
@@ -28,26 +31,43 @@
             display: flex;
             flex-direction: column;
             background-color: var(--light-gray);
+            transition: background-color 0.3s ease;
+        }
+        
+        body.dark-mode {
+            background-color: var(--dark-bg);
+            color: #f8f9fa;
         }
         
         main {
             flex: 1;
+            padding-bottom: 2rem;
         }
         
         .navbar-brand {
             font-weight: bold;
             font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+        }
+        
+        .navbar-brand i {
+            font-size: 1.8rem;
+            margin-right: 0.5rem;
+            color: var(--warning-color);
         }
         
         .nav-link {
             font-weight: 500;
             padding: 0.5rem 1rem;
-            transition: all 0.2s ease;
+            transition: all var(--transition-speed) ease;
+            margin: 0 0.1rem;
+            border-radius: var(--border-radius);
         }
         
-        .nav-link:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: var(--border-radius);
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
         }
         
         .container-fluid {
@@ -64,20 +84,33 @@
         
         .card {
             box-shadow: var(--box-shadow);
-            transition: all 0.3s ease;
+            transition: all var(--transition-speed) ease;
             border: 1px solid var(--border-color);
             border-radius: var(--border-radius);
             margin-bottom: 1.5rem;
+            overflow: hidden;
         }
         
         .card:hover {
             box-shadow: var(--box-shadow-hover);
+            transform: translateY(-3px);
+        }
+        
+        .dark-mode .card {
+            background-color: var(--dark-card);
+            border-color: rgba(255,255,255,0.1);
         }
         
         .card-header {
             font-weight: 500;
             background-color: rgba(0,0,0,0.03);
-            padding: 1rem 1.25rem;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .dark-mode .card-header {
+            background-color: rgba(255,255,255,0.05);
+            border-color: rgba(255,255,255,0.1);
         }
         
         .table th {
@@ -85,11 +118,28 @@
             background-color: var(--light-gray);
         }
         
+        .dark-mode .table {
+            color: #f8f9fa;
+        }
+        
+        .dark-mode .table th {
+            background-color: rgba(255,255,255,0.05);
+        }
+        
+        .dark-mode .table td {
+            border-color: rgba(255,255,255,0.1);
+        }
+        
         .btn {
             font-weight: 500;
             border-radius: var(--border-radius);
             padding: 0.5rem 1rem;
-            transition: all 0.2s ease;
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
         }
         
         /* Progress bar enhancements */
@@ -98,6 +148,11 @@
             overflow: visible;
             height: 1.5rem;
             border-radius: var(--border-radius);
+            background-color: rgba(0,0,0,0.05);
+        }
+        
+        .dark-mode .progress {
+            background-color: rgba(255,255,255,0.1);
         }
         
         .progress-bar {
@@ -106,6 +161,7 @@
             line-height: 1.5rem;
             font-weight: 600;
             transition: width 0.6s ease;
+            border-radius: var(--border-radius);
         }
         
         /* Form elements enhancement */
@@ -113,7 +169,14 @@
             border: 1px solid var(--border-color);
             border-radius: var(--border-radius);
             padding: 0.5rem 0.75rem;
-            transition: all 0.2s ease;
+            transition: all var(--transition-speed) ease;
+            background-color: #fff;
+        }
+        
+        .dark-mode .form-control, .dark-mode .form-select {
+            background-color: var(--dark-card);
+            color: #f8f9fa;
+            border-color: rgba(255,255,255,0.1);
         }
         
         .form-control:focus, .form-select:focus {
@@ -129,16 +192,47 @@
             text-align: center;
             color: #fff;
             box-shadow: var(--box-shadow);
+            transition: all var(--transition-speed) ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stats-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+            z-index: 0;
+        }
+        
+        .stats-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--box-shadow-hover);
         }
         
         .stats-card h3 {
-            font-size: 2rem;
+            font-size: 2.5rem;
             margin-bottom: 0.5rem;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
         }
         
         .stats-card p {
             margin-bottom: 0;
             opacity: 0.8;
+            position: relative;
+            z-index: 1;
+            font-weight: 500;
+        }
+        
+        .stats-card i {
+            position: relative;
+            z-index: 1;
         }
         
         .bg-primary-gradient {
@@ -172,6 +266,13 @@
         .search-form .form-control {
             padding-right: 3rem;
             border-radius: 2rem;
+            background-color: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #fff;
+        }
+        
+        .search-form .form-control::placeholder {
+            color: rgba(255,255,255,0.7);
         }
         
         .search-form .btn {
@@ -179,6 +280,10 @@
             right: 0;
             top: 0;
             border-radius: 0 2rem 2rem 0;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         /* Cell visualization */
@@ -193,7 +298,7 @@
             text-align: center;
             border-radius: var(--border-radius);
             box-shadow: var(--box-shadow);
-            transition: all 0.2s ease;
+            transition: all var(--transition-speed) ease;
         }
         
         .storage-cell:hover {
@@ -202,12 +307,12 @@
         }
         
         .storage-cell.occupied {
-            background-color: #ffc107;
+            background-color: var(--warning-color);
             color: #000;
         }
         
         .storage-cell.free {
-            background-color: #198754;
+            background-color: var(--success-color);
             color: #fff;
         }
         
@@ -224,6 +329,18 @@
             .stats-card h3 {
                 font-size: 1.5rem;
             }
+            
+            .nav-link {
+                display: flex;
+                align-items: center;
+            }
+            
+            .nav-link i {
+                margin-right: 0.5rem;
+                font-size: 1.1rem;
+                width: 20px;
+                text-align: center;
+            }
         }
 
         /* Accessibility improvements */
@@ -238,16 +355,165 @@
             white-space: nowrap;
             border-width: 0;
         }
+        
+        /* Sidebar navigation - for future expansion */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 250px;
+            background-color: var(--dark-bg);
+            color: #fff;
+            z-index: 100;
+            transition: transform var(--transition-speed) ease;
+            transform: translateX(-100%);
+            overflow-y: auto;
+            box-shadow: 3px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar.show {
+            transform: translateX(0);
+        }
+        
+        /* Dark mode toggle */
+        .theme-toggle {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: rgba(255,255,255,0.1);
+            color: #fff;
+            margin-left: 10px;
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .theme-toggle:hover {
+            background-color: rgba(255,255,255,0.2);
+            transform: rotate(45deg);
+        }
+        
+        /* Notification badge */
+        .notification-badge {
+            position: relative;
+        }
+        
+        .notification-badge::after {
+            content: attr(data-count);
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: var(--danger-color);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: bold;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        /* Loading spinner */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        
+        .loading-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: var(--primary-color);
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        
+        /* Quick action buttons animation */
+        .quick-action {
+            transition: all var(--transition-speed) ease;
+        }
+        
+        .quick-action:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1050;
+        }
+
+        /* Уведомления Django - скрываем по умолчанию */
+        .alert.alert-info, .alert.alert-success, .alert.alert-warning, .alert.alert-danger {
+            display: none;
+        }
+        
+        /* Более аккуратное отображение тостов */
+        .toast {
+            min-width: 200px;
+            max-width: 350px;
+            box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.15);
+            opacity: 1 !important;
+        }
     </style>
     {% block extra_head %}{% endblock %}
 </head>
 <body>
+    <!-- Loading overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+    </div>
+
     <header>
-        <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top mb-4">
             <div class="container-fluid">
                 <a class="navbar-brand" href="{% url 'home' %}">
-                    <i class="fas fa-box me-2"></i>BoxPoint
+                    <i class="fas fa-box"></i>
+                    <span>BoxPoint</span>
                 </a>
+                <div class="d-flex d-lg-none ms-auto me-2">
+                    <div class="theme-toggle" id="themeToggleMobile">
+                        <i class="fas fa-moon"></i>
+                    </div>
+                    {% if total_pending_orders > 0 %}
+                    <div class="notification-badge ms-2" data-count="{{ total_pending_orders }}">
+                        <a href="{% url 'order_receiving' %}" class="text-white">
+                            <i class="fas fa-bell fa-lg"></i>
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Переключить навигацию">
                     <span class="navbar-toggler-icon"></span>
                 </button>
@@ -255,28 +521,50 @@
                     <ul class="navbar-nav me-auto">
                         <li class="nav-item">
                             <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'home' %}">
-                                <i class="fas fa-home me-1"></i> Главная
+                                <i class="fas fa-home"></i> Главная
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if 'customer-search' in request.path %}active{% endif %}" href="{% url 'customer_search' %}">
-                                <i class="fas fa-box-open me-1"></i> Выдать заказ
+                                <i class="fas fa-box-open"></i> Выдать заказ
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if 'order-receiving' in request.path %}active{% endif %}" href="{% url 'order_receiving' %}">
-                                <i class="fas fa-dolly me-1"></i> Принять заказ
+                                <i class="fas fa-dolly"></i> Принять заказ
                             </a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link {% if 'order-search' in request.path %}active{% endif %}" href="{% url 'order_search' %}">
-                                <i class="fas fa-search me-1"></i> Поиск заказов
+                                <i class="fas fa-search"></i> Поиск заказов
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if 'storage-visualization' in request.path %}active{% endif %}" href="{% url 'storage_visualization' %}">
+                                <i class="fas fa-warehouse"></i> Карта склада
                             </a>
                         </li>
                     </ul>
-                    <div class="d-flex">
-                        <a href="{% url 'system' %}" class="btn btn-outline-light">
-                            <i class="fas fa-cogs me-1"></i> Система
+                    <div class="d-flex align-items-center">
+                        <div class="d-none d-lg-block">
+                            <form class="search-form d-flex me-2" action="{% url 'order_search' %}" method="GET">
+                                <input type="text" class="form-control" name="search" placeholder="Поиск заказа..." aria-label="Поиск">
+                                <button class="btn btn-outline-light" type="submit"><i class="fas fa-search"></i></button>
+                            </form>
+                        </div>
+                        <div class="theme-toggle d-none d-lg-flex" id="themeToggle">
+                            <i class="fas fa-moon"></i>
+                        </div>
+                        {% if total_pending_orders > 0 %}
+                        <div class="notification-badge d-none d-lg-block ms-2" data-count="{{ total_pending_orders }}">
+                            <a href="{% url 'order_receiving' %}" class="text-white">
+                                <i class="fas fa-bell fa-lg"></i>
+                            </a>
+                        </div>
+                        {% endif %}
+                        <a href="{% url 'system' %}" class="btn btn-outline-light ms-2">
+                            <i class="fas fa-cogs"></i> 
+                            <span class="d-none d-sm-inline">Система</span>
                         </a>
                     </div>
                 </div>
@@ -296,11 +584,53 @@
                     <p class="mb-0">&copy; 2025 Box Point - Система управления пунктом выдачи заказов</p>
                 </div>
                 <div class="col-md-6 text-center text-md-end">
-                    <p class="mb-0">Версия 1.0.1</p>
+                    <p class="mb-0">
+                        <span>Версия 1.0.2</span>
+                        <span class="ms-3">
+                            <a href="#" class="text-decoration-none" data-bs-toggle="modal" data-bs-target="#supportModal">
+                                <i class="fas fa-headset me-1"></i>Поддержка
+                            </a>
+                        </span>
+                    </p>
                 </div>
             </div>
         </div>
     </footer>
+
+    <!-- Toast container for notifications -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Support modal -->
+    <div class="modal fade" id="supportModal" tabindex="-1" aria-labelledby="supportModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="supportModalLabel"><i class="fas fa-headset me-2"></i>Поддержка</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Если у вас возникли проблемы с системой или вам требуется помощь:</p>
+                    <ul class="list-unstyled">
+                        <li class="mb-3">
+                            <i class="fas fa-phone-alt me-2 text-primary"></i>
+                            <a href="tel:+79001234567">+7 (900) 123-45-67</a>
+                        </li>
+                        <li class="mb-3">
+                            <i class="fas fa-envelope me-2 text-primary"></i>
+                            <a href="mailto:support@boxpoint.ru">support@boxpoint.ru</a>
+                        </li>
+                        <li>
+                            <i class="fab fa-telegram me-2 text-primary"></i>
+                            <a href="https://t.me/boxpoint_support" target="_blank">Telegram</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -309,6 +639,133 @@
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Loading overlay
+            window.showLoading = function() {
+                document.getElementById('loadingOverlay').classList.add('show');
+            };
+            
+            window.hideLoading = function() {
+                document.getElementById('loadingOverlay').classList.remove('show');
+            };
+            
+            // Add loading indicator for links and forms
+            const links = document.querySelectorAll('a:not(.no-loading)');
+            links.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    // Skip if it's a modal trigger or has no href
+                    if (this.getAttribute('data-bs-toggle') || !this.getAttribute('href') || 
+                        this.getAttribute('href').startsWith('#') || 
+                        this.getAttribute('href').includes('javascript:void')) {
+                        return;
+                    }
+                    showLoading();
+                });
+            });
+            
+            const forms = document.querySelectorAll('form:not(.no-loading)');
+            forms.forEach(form => {
+                form.addEventListener('submit', function() {
+                    showLoading();
+                });
+            });
+            
+            // Dark mode toggle
+            function toggleDarkMode() {
+                const body = document.body;
+                const themeIcon = document.querySelectorAll('.theme-toggle i');
+                body.classList.toggle('dark-mode');
+                
+                if (body.classList.contains('dark-mode')) {
+                    localStorage.setItem('darkMode', 'enabled');
+                    themeIcon.forEach(icon => {
+                        icon.classList.replace('fa-moon', 'fa-sun');
+                    });
+                } else {
+                    localStorage.setItem('darkMode', 'disabled');
+                    themeIcon.forEach(icon => {
+                        icon.classList.replace('fa-sun', 'fa-moon');
+                    });
+                }
+            }
+            
+            // Check for saved theme preference
+            if (localStorage.getItem('darkMode') === 'enabled') {
+                document.body.classList.add('dark-mode');
+                document.querySelectorAll('.theme-toggle i').forEach(icon => {
+                    icon.classList.replace('fa-moon', 'fa-sun');
+                });
+            }
+            
+            // Add event listeners for theme toggle
+            document.getElementById('themeToggle').addEventListener('click', toggleDarkMode);
+            document.getElementById('themeToggleMobile').addEventListener('click', toggleDarkMode);
+            
+            // Toast notification function - с улучшениями для более аккуратного отображения
+            window.showToast = function(message, type = 'info', title = '') {
+                const toastContainer = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+                toast.className = `toast align-items-center border-0 bg-${type}`;
+                toast.setAttribute('role', 'alert');
+                toast.setAttribute('aria-live', 'assertive');
+                toast.setAttribute('aria-atomic', 'true');
+                
+                let iconClass = 'fas fa-info-circle';
+                if (type === 'success') iconClass = 'fas fa-check-circle';
+                if (type === 'danger') iconClass = 'fas fa-exclamation-circle';
+                if (type === 'warning') iconClass = 'fas fa-exclamation-triangle';
+                
+                const titleText = title ? title : {
+                    'info': 'Информация',
+                    'success': 'Успешно',
+                    'danger': 'Ошибка',
+                    'warning': 'Предупреждение'
+                }[type];
+                
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body text-white">
+                            <div class="d-flex align-items-center">
+                                <i class="${iconClass} me-2"></i>
+                                <div>
+                                    <div class="fw-bold">${titleText}</div>
+                                    <div>${message}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                `;
+                
+                toastContainer.appendChild(toast);
+                const bsToast = new bootstrap.Toast(toast, {
+                    autohide: true,
+                    delay: 3000
+                });
+                bsToast.show();
+                
+                toast.addEventListener('hidden.bs.toast', function () {
+                    toastContainer.removeChild(toast);
+                });
+            };
+            
+            // Обработка сообщений Django и преобразование их в тосты
+            const djangoMessages = document.querySelectorAll('.alert');
+            djangoMessages.forEach(message => {
+                let messageText = message.innerText.trim();
+                let type = 'info';
+                
+                if (message.classList.contains('alert-success')) type = 'success';
+                if (message.classList.contains('alert-danger')) type = 'danger';
+                if (message.classList.contains('alert-warning')) type = 'warning';
+                
+                // Пропускаем пустые сообщения
+                if (messageText && messageText.length > 0) {
+                    setTimeout(() => {
+                        showToast(messageText, type);
+                    }, 500); // Небольшая задержка для лучшего UX
+                }
             });
             
             // Accessibility improvement - add focus styles

@@ -47,14 +47,11 @@
     }
     
     .checkout-summary {
-        background-color: #fff;
-        border-radius: 0.5rem;
-        padding: 1.25rem;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        padding: 1rem;
     }
     
     .summary-row {
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.5rem;
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -79,15 +76,14 @@
 {% endblock %}
 
 {% block content %}
-<div class="row mb-4">
+<div class="row mb-3">
     <div class="col-md-12">
         <div class="card bg-primary text-white">
             <div class="card-body d-flex justify-content-between align-items-center">
                 <div>
-                    <h1 class="h3 mb-0"><i class="fas fa-box-open me-2"></i> Выдача заказов</h1>
-                    <p class="mb-0">Управление заказами клиента</p>
+                    <h1 class="h4 mb-0"><i class="fas fa-box-open me-2"></i> Выдача заказов</h1>
                 </div>
-                <a href="{% url 'home' %}" class="btn btn-outline-light">
+                <a href="{% url 'home' %}" class="btn btn-outline-light btn-sm">
                     <i class="fas fa-arrow-left me-1"></i> На главную
                 </a>
             </div>
@@ -95,250 +91,187 @@
     </div>
 </div>
 
-<div class="row mb-4">
-    <div class="col-md-12">
-        <div class="card border-info">
-            <div class="card-header bg-info text-white">
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-user me-2"></i> Клиент: {{ object.name }}</h5>
-                    <div class="mt-2 mt-md-0">
-                        <span class="badge bg-light text-dark me-2"><i class="fas fa-id-card me-1"></i> ID: {{ object.id }}</span>
-                        <span class="badge bg-light text-dark"><i class="fas fa-phone me-1"></i> {{ object.phone }}</span>
-                        {% if object.email %}<span class="badge bg-light text-dark ms-2"><i class="fas fa-envelope me-1"></i> {{ object.email }}</span>{% endif %}
-                    </div>
-                </div>
+<div class="card mb-3 border-info">
+    <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0"><i class="fas fa-user me-2"></i> Клиент: {{ object.name }}</h5>
+            <div>
+                <span class="badge bg-light text-dark me-2"><i class="fas fa-id-card me-1"></i> ID: {{ object.id }}</span>
+                <span class="badge bg-light text-dark"><i class="fas fa-phone me-1"></i> {{ object.phone }}</span>
+                {% if object.email %}<span class="badge bg-light text-dark ms-2"><i class="fas fa-envelope me-1"></i> {{ object.email }}</span>{% endif %}
             </div>
+        </div>
+        <div>
+            <span class="badge bg-light text-dark me-1">Товаров: {{ pending_orders|length }}</span>
+            <span class="badge bg-success text-white me-1">Предоплата: {{ prepaid_count }}</span>
+            <span class="badge bg-warning text-dark me-1">К оплате: {{ postpaid_count }}</span>
+            <span class="badge bg-danger text-white">Возврат: {{ marked_for_return_count }}</span>
         </div>
     </div>
 </div>
 
-<div class="row mb-4">
-    <div class="col-md-8">
-        {% if postpaid_count > 0 %}
-        <div class="alert alert-warning mb-4">
-            <div class="d-flex">
-                <div class="flex-shrink-0">
-                    <i class="fas fa-exclamation-triangle fa-2x me-3 text-warning"></i>
-                </div>
-                <div>
-                    <h5 class="alert-heading">Требуется оплата при получении</h5>
-                    <p class="mb-0">В заказах клиента есть <strong>{{ postpaid_count }}</strong> товаров с постоплатой на общую сумму 
-                    <strong class="text-danger" id="postpaid-amount"></strong>. Убедитесь, что клиент готов их оплатить.</p>
-                </div>
-            </div>
+{% if postpaid_count > 0 %}
+<div class="alert alert-warning mb-3">
+    <div class="d-flex">
+        <div class="flex-shrink-0">
+            <i class="fas fa-exclamation-triangle fa-2x me-3 text-warning"></i>
         </div>
-        {% endif %}
-    </div>
-    <div class="col-md-4">
-        <div class="card mb-4">
-            <div class="card-header bg-white">
-                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Информация</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="list-group list-group-flush">
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>Всего товаров:</span>
-                        <span class="badge bg-primary rounded-pill">{{ pending_orders|length }}</span>
-                    </div>
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>Предоплачено:</span>
-                        <span class="badge bg-success rounded-pill">{{ prepaid_count }}</span>
-                    </div>
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>К оплате:</span>
-                        <span class="badge bg-warning text-dark rounded-pill">{{ postpaid_count }}</span>
-                    </div>
-                    <div class="list-group-item d-flex justify-content-between align-items-center">
-                        <span>На возврат:</span>
-                        <span class="badge bg-danger rounded-pill">{{ marked_for_return_count }}</span>
-                    </div>
-                </div>
-            </div>
+        <div>
+            <h5 class="alert-heading">Требуется оплата при получении</h5>
+            <p class="mb-0">В заказах клиента есть <strong>{{ postpaid_count }}</strong> товаров с постоплатой на общую сумму 
+            <strong class="text-danger" id="postpaid-amount"></strong>. Убедитесь, что клиент готов их оплатить.</p>
         </div>
     </div>
 </div>
+{% endif %}
 
 {% if pending_orders %}
-    <div class="card mb-4">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="fas fa-boxes me-2 text-primary"></i> Заказы для выдачи</h5>
-            <span class="badge bg-primary">{{ pending_orders|length }}</span>
-        </div>
-        <div class="card-body p-0">
-            <form method="post" action="" id="delivery-form">
-                {% csrf_token %}
-                
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle order-table mb-0">
-                        <thead>
-                            <tr>
-                                <th>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="selectAllOrders" checked>
-                                        <label class="form-check-label" for="selectAllOrders">
-                                            Выбрать все
-                                        </label>
+<div class="card mb-3">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-boxes me-2 text-primary"></i> Заказы для выдачи</h5>
+        <span class="badge bg-primary">{{ pending_orders|length }}</span>
+    </div>
+    <div class="card-body p-0">
+        <form method="post" action="" id="delivery-form">
+            {% csrf_token %}
+            
+            <div class="table-responsive">
+                <table class="table table-hover align-middle order-table mb-0">
+                    <thead>
+                        <tr>
+                            <th>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="selectAllOrders" checked>
+                                    <label class="form-check-label" for="selectAllOrders">
+                                        Выбрать все
+                                    </label>
+                                </div>
+                            </th>
+                            <th>Заказ</th>
+                            <th>Детали</th>
+                            <th class="text-center">Ячейка</th>
+                            <th class="text-end">Стоимость</th>
+                            <th class="text-center">Действия</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in pending_orders %}
+                        <tr class="order-row {% if order.is_under_inspection %}inspection{% endif %}{% if order.marked_for_return %}return{% endif %}" 
+                            data-order-id="{{ order.id }}" data-price="{{ order.price }}" data-payment="{{ order.payment_status }}">
+                            <td>
+                                <div class="form-check">
+                                    <input class="form-check-input order-checkbox" type="checkbox" name="deliver_orders" 
+                                           value="{{ order.id }}" id="order_{{ order.id }}"
+                                           {% if not order.is_under_inspection and not order.marked_for_return %}checked{% endif %}
+                                           {% if order.marked_for_return %}disabled{% endif %}>
+                                    <label class="form-check-label" for="order_{{ order.id }}"></label>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex flex-column">
+                                    <div class="d-flex align-items-center">
+                                        {% if order.marked_for_return %}<i class="fas fa-undo-alt text-danger me-2" title="Отмечен на возврат"></i>{% endif %}
+                                        {% if order.is_under_inspection %}<i class="fas fa-search text-warning me-2" title="На проверке"></i>{% endif %}
+                                        <strong>{{ order.order_id }}</strong>
                                     </div>
-                                </th>
-                                <th>Заказ</th>
-                                <th>Детали</th>
-                                <th class="text-center">Ячейка</th>
-                                <th class="text-end">Стоимость</th>
-                                <th class="text-center">Действия</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for order in pending_orders %}
-                            <tr class="order-row {% if order.is_under_inspection %}inspection{% endif %}{% if order.marked_for_return %}return{% endif %}" 
-                                data-order-id="{{ order.id }}" data-price="{{ order.price }}" data-payment="{{ order.payment_status }}">
-                                <td>
-                                    <div class="form-check">
-                                        <input class="form-check-input order-checkbox" type="checkbox" name="deliver_orders" 
-                                               value="{{ order.id }}" id="order_{{ order.id }}"
-                                               {% if not order.is_under_inspection and not order.marked_for_return %}checked{% endif %}
-                                               {% if order.marked_for_return %}disabled{% endif %}>
-                                        <label class="form-check-label" for="order_{{ order.id }}"></label>
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="d-flex flex-column">
-                                        <div class="d-flex align-items-center">
-                                            {% if order.marked_for_return %}<i class="fas fa-undo-alt text-danger me-2" title="Отмечен на возврат"></i>{% endif %}
-                                            {% if order.is_under_inspection %}<i class="fas fa-search text-warning me-2" title="На проверке"></i>{% endif %}
-                                            <strong>{{ order.order_id }}</strong>
-                                        </div>
-                                        <div class="mt-1">{{ order.name }}</div>
-                                        {% if order.description %}
-                                        <div class="small text-muted">{{ order.description|truncatechars:50 }}</div>
-                                        {% endif %}
-                                    </div>
-                                </td>
-                                <td>
-                                    <div class="small">
-                                        {% if order.size %}<div><strong>Размер:</strong> {{ order.size }}</div>{% endif %}
-                                        {% if order.color %}<div><strong>Цвет:</strong> {{ order.color }}</div>{% endif %}
-                                        <div class="mt-1">
-                                            {% if order.payment_status == 'prepaid' %}
-                                            <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Предоплата</span>
-                                            {% else %}
-                                            <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle me-1"></i> Постоплата</span>
-                                            {% endif %}
-                                        </div>
-                                    </div>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge bg-secondary cell-badge">{{ order.storage_cell.number }}</span>
-                                </td>
-                                <td class="text-end">
-                                    <span class="price-badge">{{ order.price }} ₽</span>
-                                </td>
-                                <td class="text-end order-actions">
-                                    <div class="btn-group">
-                                        {% if not order.is_under_inspection and not order.marked_for_return %}
-                                        <a href="{% url 'order_inspection' pk=order.id %}" class="btn btn-warning btn-sm" title="Отправить на проверку">
-                                            <i class="fas fa-search"></i><span class="d-none d-lg-inline ms-1">На проверку</span>
-                                        </a>
-                                        {% endif %}
-                                        
-                                        {% if order.marked_for_return %}
-                                        <a href="{% url 'order_return_cancel' pk=order.id %}" class="btn btn-success btn-sm" title="Отменить возврат">
-                                            <i class="fas fa-times-circle"></i><span class="d-none d-lg-inline ms-1">Отменить возврат</span>
-                                        </a>
+                                    <div class="mt-1">{{ order.name }}</div>
+                                    {% if order.description %}
+                                    <div class="small text-muted">{{ order.description|truncatechars:50 }}</div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="small">
+                                    {% if order.size %}<div><strong>Размер:</strong> {{ order.size }}</div>{% endif %}
+                                    {% if order.color %}<div><strong>Цвет:</strong> {{ order.color }}</div>{% endif %}
+                                    <div class="mt-1">
+                                        {% if order.payment_status == 'prepaid' %}
+                                        <span class="badge bg-success"><i class="fas fa-check-circle me-1"></i> Предоплата</span>
                                         {% else %}
-                                        <a href="{% url 'order_cancel' pk=order.id %}" class="btn btn-danger btn-sm" title="Отметить на возврат">
-                                            <i class="fas fa-undo-alt"></i><span class="d-none d-lg-inline ms-1">Оформить возврат</span>
-                                        </a>
+                                        <span class="badge bg-warning text-dark"><i class="fas fa-exclamation-circle me-1"></i> Постоплата</span>
                                         {% endif %}
                                     </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-secondary cell-badge">{{ order.storage_cell.number }}</span>
+                            </td>
+                            <td class="text-end">
+                                <span class="price-badge">{{ order.price }} ₽</span>
+                            </td>
+                            <td class="text-end order-actions">
+                                <div class="btn-group">
+                                    {% if not order.is_under_inspection and not order.marked_for_return %}
+                                    <a href="{% url 'order_inspection' pk=order.id %}" class="btn btn-warning btn-sm" title="Отправить на проверку">
+                                        <i class="fas fa-search"></i><span class="d-none d-lg-inline ms-1">На проверку</span>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    {% if order.marked_for_return %}
+                                    <a href="{% url 'order_return_cancel' pk=order.id %}" class="btn btn-success btn-sm" title="Отменить возврат">
+                                        <i class="fas fa-times-circle"></i><span class="d-none d-lg-inline ms-1">Отменить возврат</span>
+                                    </a>
+                                    {% else %}
+                                    <a href="{% url 'order_cancel' pk=order.id %}" class="btn btn-danger btn-sm" title="Отметить на возврат">
+                                        <i class="fas fa-undo-alt"></i><span class="d-none d-lg-inline ms-1">Оформить возврат</span>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-group-divider">
+                        <tr class="fw-bold">
+                            <td colspan="4" class="text-end">К оплате:</td>
+                            <td class="text-end text-danger" id="table-total-payment">0 ₽</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <div class="p-3 d-flex justify-content-between align-items-center">
+                <a href="{% url 'customer_search' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i> Вернуться к поиску
+                </a>
                 
-                <div class="p-4" id="summary-section">
-                    <div class="row">
-                        <div class="col-md-6 offset-md-6">
-                            <div class="checkout-summary">
-                                <h5 class="mb-3">Сводка заказа</h5>
-                                <div class="summary-row">
-                                    <span>Товары к выдаче:</span>
-                                    <span id="selected-count">0</span>
-                                </div>
-                                <div class="summary-row">
-                                    <span>Предоплаченные товары:</span>
-                                    <span id="prepaid-count">0</span>
-                                </div>
-                                <div class="summary-row">
-                                    <span>Товары к оплате:</span>
-                                    <span id="to-pay-count">0</span>
-                                </div>
-                                <div class="summary-row">
-                                    <span>Товары на возврат:</span>
-                                    <span id="return-count">{{ marked_for_return_count }}</span>
-                                </div>
-                                <div class="summary-row summary-total">
-                                    <span>К оплате:</span>
-                                    <span class="text-danger" id="total-payment">0 ₽</span>
-                                </div>
-                            </div>
-                            
-                            <div class="form-check mt-3">
-                                <input class="form-check-input" type="checkbox" id="include_package" name="include_package">
-                                <label class="form-check-label" for="include_package">
-                                    Добавить пакет (+50₽)
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="px-4 pb-4">
-                    <div class="d-flex justify-content-between">
-                        <a href="{% url 'customer_search' %}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-1"></i> Вернуться к поиску
-                        </a>
-                        
-                        <div>
-                            <button type="submit" id="confirm-button" class="btn btn-success btn-lg">
-                                <i class="fas fa-check-circle me-1"></i> Перейти к подтверждению
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </form>
-        </div>
+                <button type="submit" id="confirm-button" class="btn btn-success">
+                    <i class="fas fa-check-circle me-1"></i> Перейти к подтверждению
+                </button>
+            </div>
+        </form>
     </div>
+</div>
     
-    <div class="alert alert-info" role="alert">
-        <div class="d-flex">
-            <div class="flex-shrink-0">
-                <i class="fas fa-info-circle fa-2x me-3"></i>
-            </div>
-            <div>
-                <h5 class="alert-heading">Информация о процессе</h5>
-                <ul class="mb-0">
-                    <li>Если клиент хочет проверить заказ, нажмите кнопку "На проверку"</li>
-                    <li>При возврате товара выберите "Оформить возврат" и укажите причину</li>
-                    <li>После проверки заказа вы не сможете отменить эту операцию</li>
-                </ul>
-            </div>
+<div class="alert alert-info mb-3" role="alert">
+    <div class="d-flex">
+        <div class="flex-shrink-0">
+            <i class="fas fa-info-circle fa-2x me-3"></i>
+        </div>
+        <div>
+            <h5 class="alert-heading">Информация о процессе</h5>
+            <ul class="mb-0">
+                <li>Если клиент хочет проверить заказ, нажмите кнопку "На проверку"</li>
+                <li>При возврате товара выберите "Оформить возврат" и укажите причину</li>
+                <li>После проверки заказа вы не сможете отменить эту операцию</li>
+            </ul>
         </div>
     </div>
+</div>
 {% else %}
-    <div class="card mb-4">
-        <div class="card-body text-center py-5">
-            <div class="mb-4">
-                <i class="fas fa-box-open text-muted fa-5x"></i>
-            </div>
-            <h3>У клиента нет заказов для выдачи</h3>
-            <p class="text-muted mb-4">Возможно, заказы еще не поступили в пункт выдачи или уже были выданы.</p>
-            <a href="{% url 'customer_search' %}" class="btn btn-primary">
-                <i class="fas fa-arrow-left me-1"></i> Вернуться к поиску клиента
-            </a>
+<div class="card mb-3">
+    <div class="card-body text-center py-5">
+        <div class="mb-4">
+            <i class="fas fa-box-open text-muted fa-5x"></i>
         </div>
+        <h3>У клиента нет заказов для выдачи</h3>
+        <p class="text-muted mb-4">Возможно, заказы еще не поступили в пункт выдачи или уже были выданы.</p>
+        <a href="{% url 'customer_search' %}" class="btn btn-primary">
+            <i class="fas fa-arrow-left me-1"></i> Вернуться к поиску клиента
+        </a>
     </div>
+</div>
 {% endif %}
 
 {% endblock %}
@@ -351,16 +284,8 @@
         const selectAllCheckbox = document.getElementById('selectAllOrders');
         const form = document.getElementById('delivery-form');
         const confirmButton = document.getElementById('confirm-button');
-        const selectedCountEl = document.getElementById('selected-count');
-        const prepaidCountEl = document.getElementById('prepaid-count');
-        const toPayCountEl = document.getElementById('to-pay-count');
-        const returnCountEl = document.getElementById('return-count');
-        const totalPaymentEl = document.getElementById('total-payment');
+        const totalPaymentEl = document.getElementById('table-total-payment');
         const postpaidAmountEl = document.getElementById('postpaid-amount');
-        const includePackageCheckbox = document.getElementById('include_package');
-        
-        // Стоимость пакета
-        const PACKAGE_PRICE = 50; // руб.
         
         // Функция для обновления выделения строки
         function updateRowSelection(checkbox) {
@@ -396,15 +321,7 @@
                 }
             });
             
-            // Добавляем стоимость пакета при необходимости
-            if (includePackageCheckbox && includePackageCheckbox.checked) {
-                totalPayment += PACKAGE_PRICE;
-            }
-            
             // Обновляем элементы интерфейса
-            selectedCountEl.textContent = selectedCount;
-            prepaidCountEl.textContent = prepaidCount;
-            toPayCountEl.textContent = toPayCount;
             totalPaymentEl.textContent = totalPayment.toFixed(2) + ' ₽';
             
             // Обновляем сумму постоплаты в предупреждении
@@ -414,7 +331,7 @@
             
             // Обновляем состояние кнопки подтверждения
             const atLeastOneChecked = selectedCount > 0;
-            const anyMarkedForReturn = parseInt(returnCountEl.textContent) > 0;
+            const anyMarkedForReturn = document.querySelectorAll('tr.return').length > 0;
             
             // Активируем кнопку, если выбран хотя бы один товар или есть товары на возврат
             confirmButton.disabled = !atLeastOneChecked && !anyMarkedForReturn;
@@ -457,15 +374,10 @@
             });
         });
         
-        // Обработчик для чекбокса "Добавить пакет"
-        if (includePackageCheckbox) {
-            includePackageCheckbox.addEventListener('change', updateOrderSummary);
-        }
-        
         // Проверка формы перед отправкой
         form.addEventListener('submit', function(e) {
             const atLeastOneChecked = Array.from(checkboxes).some(checkbox => checkbox.checked);
-            const anyMarkedForReturn = parseInt(returnCountEl.textContent) > 0;
+            const anyMarkedForReturn = document.querySelectorAll('tr.return').length > 0;
             
             // Если ничего не отмечено и нет товаров на возврат, предотвращаем отправку
             if (!atLeastOneChecked && !anyMarkedForReturn) {
