@@ -10,11 +10,24 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #0d6efd;
+            --secondary-color: #6c757d;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --danger-color: #dc3545;
+            --light-gray: #f8f9fa;
+            --border-color: rgba(0,0,0,0.1);
+            --box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            --box-shadow-hover: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            --border-radius: 0.375rem;
+        }
+        
         body {
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-            background-color: #f8f9fa;
+            background-color: var(--light-gray);
         }
         
         main {
@@ -28,6 +41,13 @@
         
         .nav-link {
             font-weight: 500;
+            padding: 0.5rem 1rem;
+            transition: all 0.2s ease;
+        }
+        
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: var(--border-radius);
         }
         
         .container-fluid {
@@ -43,39 +63,180 @@
         }
         
         .card {
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            box-shadow: var(--box-shadow);
             transition: all 0.3s ease;
-            border: 1px solid rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
         }
         
         .card:hover {
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            box-shadow: var(--box-shadow-hover);
         }
         
         .card-header {
             font-weight: 500;
+            background-color: rgba(0,0,0,0.03);
+            padding: 1rem 1.25rem;
         }
         
         .table th {
             font-weight: 600;
-            background-color: #f8f9fa;
+            background-color: var(--light-gray);
         }
         
         .btn {
             font-weight: 500;
+            border-radius: var(--border-radius);
+            padding: 0.5rem 1rem;
+            transition: all 0.2s ease;
         }
         
         /* Progress bar enhancements */
         .progress {
             margin-bottom: 1rem;
             overflow: visible;
+            height: 1.5rem;
+            border-radius: var(--border-radius);
         }
         
         .progress-bar {
             position: relative;
             text-align: center;
-            line-height: 2rem;
+            line-height: 1.5rem;
             font-weight: 600;
+            transition: width 0.6s ease;
+        }
+        
+        /* Form elements enhancement */
+        .form-control, .form-select {
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            padding: 0.5rem 0.75rem;
+            transition: all 0.2s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        
+        /* Dashboard style elements */
+        .stats-card {
+            padding: 1.5rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
+            text-align: center;
+            color: #fff;
+            box-shadow: var(--box-shadow);
+        }
+        
+        .stats-card h3 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stats-card p {
+            margin-bottom: 0;
+            opacity: 0.8;
+        }
+        
+        .bg-primary-gradient {
+            background: linear-gradient(135deg, #0d6efd 0%, #0099ff 100%);
+        }
+        
+        .bg-success-gradient {
+            background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+        }
+        
+        .bg-warning-gradient {
+            background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        }
+        
+        .bg-danger-gradient {
+            background: linear-gradient(135deg, #dc3545 0%, #ff4d6b 100%);
+        }
+        
+        /* Badges */
+        .badge {
+            font-weight: 500;
+            padding: 0.35em 0.65em;
+            border-radius: var(--border-radius);
+        }
+        
+        /* Search enhancement */
+        .search-form {
+            position: relative;
+        }
+        
+        .search-form .form-control {
+            padding-right: 3rem;
+            border-radius: 2rem;
+        }
+        
+        .search-form .btn {
+            position: absolute;
+            right: 0;
+            top: 0;
+            border-radius: 0 2rem 2rem 0;
+        }
+        
+        /* Cell visualization */
+        .cell-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+        }
+        
+        .storage-cell {
+            padding: 1rem;
+            text-align: center;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            transition: all 0.2s ease;
+        }
+        
+        .storage-cell:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--box-shadow-hover);
+        }
+        
+        .storage-cell.occupied {
+            background-color: #ffc107;
+            color: #000;
+        }
+        
+        .storage-cell.free {
+            background-color: #198754;
+            color: #fff;
+        }
+        
+        /* Mobile optimizations */
+        @media (max-width: 576px) {
+            .table-responsive {
+                font-size: 0.875rem;
+            }
+            
+            .stats-card {
+                padding: 1rem;
+            }
+            
+            .stats-card h3 {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Accessibility improvements */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
         }
     </style>
     {% block extra_head %}{% endblock %}
@@ -87,11 +248,11 @@
                 <a class="navbar-brand" href="{% url 'home' %}">
                     <i class="fas fa-box me-2"></i>BoxPoint
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Переключить навигацию">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav">
+                    <ul class="navbar-nav me-auto">
                         <li class="nav-item">
                             <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="{% url 'home' %}">
                                 <i class="fas fa-home me-1"></i> Главная
@@ -113,6 +274,11 @@
                             </a>
                         </li>
                     </ul>
+                    <div class="d-flex">
+                        <a href="{% url 'system' %}" class="btn btn-outline-light">
+                            <i class="fas fa-cogs me-1"></i> Система
+                        </a>
+                    </div>
                 </div>
             </div>
         </nav>
@@ -130,7 +296,7 @@
                     <p class="mb-0">&copy; 2025 Box Point - Система управления пунктом выдачи заказов</p>
                 </div>
                 <div class="col-md-6 text-center text-md-end">
-                    <p class="mb-0">Версия 1.0.0</p>
+                    <p class="mb-0">Версия 1.0.1</p>
                 </div>
             </div>
         </div>
@@ -143,6 +309,17 @@
             var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
             tooltipTriggerList.map(function (tooltipTriggerEl) {
                 return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Accessibility improvement - add focus styles
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('focus', function() {
+                    this.classList.add('bg-light', 'bg-opacity-10');
+                });
+                link.addEventListener('blur', function() {
+                    this.classList.remove('bg-light', 'bg-opacity-10');
+                });
             });
         });
     </script>

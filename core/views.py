@@ -208,6 +208,7 @@ class OrderCancelView(UpdateView):
         # Get reasons based on whether the order was inspected or not
         category = 'opened' if order.is_under_inspection else 'unopened'
         context['reasons'] = ReturnReason.objects.filter(category=category)
+        context['order'] = order
         
         return context
     
@@ -216,22 +217,18 @@ class OrderCancelView(UpdateView):
         reason_id = request.POST.get('reason')
         notes = request.POST.get('notes', '')
         
-        if reason_id:
-            reason = get_object_or_404(ReturnReason, id=reason_id)
-            
-            # Instead of immediately setting status to 'returned',
-            # mark it for return by storing the reason and notes
-            # The actual return will happen during pickup confirmation
-            order.marked_for_return = True
-            order.return_reason_id = reason.id
-            order.return_notes = notes
-            order.save()
-            
-            messages.success(request, f'Заказ {order.order_id} отмечен для возврата. Завершите выдачу, чтобы увидеть финансовый итог.')
-            return redirect('pickup_process', pk=order.customer.pk)
-        else:
+        if not reason_id:
             messages.error(request, 'Необходимо указать причину возврата')
             return self.get(request, *args, **kwargs)
+            
+        # Get the reason to validate it exists
+        reason = get_object_or_404(ReturnReason, id=reason_id)
+            
+        # Use the model method to mark for return
+        order.mark_for_return(reason.id, notes)
+        
+        messages.success(request, f'Заказ {order.order_id} отмечен для возврата. Завершите выдачу, чтобы увидеть финансовый итог.')
+        return redirect('pickup_process', pk=order.customer.pk)
 
 
 class PickupConfirmationView(UpdateView):
@@ -243,146 +240,107 @@ class PickupConfirmationView(UpdateView):
         context = super().get_context_data(**kwargs)
         session = self.get_object()
         
-        # Get all orders for this session's customer
+        # Get all orders for this session's customer with prefetched storage_cell data
         orders = Order.objects.filter(
             customer=session.customer
         ).select_related('storage_cell')
         
-        # Get selected order IDs from the form submission or URL parameters
-        selected_order_ids = []
-        if self.request.method == 'POST':
-            selected_order_ids = self.request.POST.getlist('deliver_orders')
-        elif 'order_ids' in self.request.GET:
+        # Get selected order IDs from the session storage or URL parameters
+        selected_order_ids = self.request.session.get('selected_order_ids', [])
+        if 'order_ids' in self.request.GET:
             selected_order_ids = self.request.GET.get('order_ids').split(',')
-        else:
-            # Default to all pending orders if none selected
-            selected_order_ids = [str(order.id) for order in orders.filter(
-                status='pending',
-                reception_status='received',
-                marked_for_return=False  # Don't include orders marked for return
-            )]
-            
-        # Filter out orders that are already delivered
-        valid_order_ids = []
-        for order_id in selected_order_ids:
-            try:
-                order = orders.get(id=order_id)
-                if order.status == 'pending' and order.reception_status == 'received':
-                    valid_order_ids.append(order_id)
-            except Order.DoesNotExist:
-                continue
         
         # Count orders marked for return
-        marked_for_return = orders.filter(
+        marked_for_return_orders = orders.filter(
             status='pending',
             reception_status='received', 
             marked_for_return=True
-        ).count()
+        )
+        marked_for_return_count = marked_for_return_orders.count()
         
         # Calculate summaries for confirmed orders
-        delivered_count = len(valid_order_ids)
+        delivered_count = len(selected_order_ids)
         returned_count = orders.filter(status='returned').count()
         
         # Only count actually received pending orders that aren't being delivered or marked for return
-        actual_pending_count = orders.filter(
+        pending_count = orders.filter(
             status='pending',
             reception_status='received'
         ).exclude(
-            id__in=valid_order_ids
+            id__in=selected_order_ids
         ).exclude(
             marked_for_return=True
         ).count()
         
-        pending_count = actual_pending_count
-        
         # Calculate financial totals
         prepaid_total = sum(order.price for order in orders.filter(
-            id__in=valid_order_ids, 
+            id__in=selected_order_ids, 
             payment_status='prepaid'
         ))
         
         postpaid_total = sum(order.price for order in orders.filter(
-            id__in=valid_order_ids,
+            id__in=selected_order_ids,
             payment_status='postpaid'
         ))
         
-        refund_total = sum(order.price for order in orders.filter(
-            marked_for_return=True,
+        refund_total = sum(order.price for order in marked_for_return_orders.filter(
             payment_status='prepaid'
         ))
         
+        # Calculate totals to display on the confirmation page
+        total_to_collect = postpaid_total
+        total_to_refund = refund_total
+        final_balance = total_to_collect - total_to_refund
+        
         context.update({
             'orders': orders,
-            'selected_orders': valid_order_ids,
+            'selected_orders': selected_order_ids,
             'delivered_count': delivered_count,
-            'returned_count': returned_count + marked_for_return,  # Include marked for return in the count
+            'returned_count': returned_count + marked_for_return_count,
             'pending_count': pending_count,
             'prepaid_total': prepaid_total,
             'postpaid_total': postpaid_total,
             'refund_total': refund_total,
-            'marked_for_return': marked_for_return
+            'marked_for_return_count': marked_for_return_count,
+            'total_to_collect': total_to_collect,
+            'total_to_refund': total_to_refund,
+            'final_balance': final_balance
         })
         
         return context
     
     def form_valid(self, form):
         session = form.save(commit=False)
-
-        # Get all orders for this session's customer
-        orders = Order.objects.filter(customer=session.customer)
-
-        # Get selected order IDs from the form submission
-        order_ids = self.request.POST.getlist('deliver_orders')
-
-        # Mark orders as delivered or keep them pending based on selection
-        now = timezone.now()
-        for order in orders:
-            if str(order.id) in order_ids and not order.marked_for_return:
-                order.status = 'delivered'
-                order.delivered_at = now
-            else:
-                # If the order is not selected or marked for return, keep it pending
-                order.status = 'pending'
-                order.delivered_at = None
-
-            order.save()
-
-        # Process orders marked for return
-        orders_to_return = Order.objects.filter(
-            customer=session.customer,
+        # Get selected order IDs from the current form submission
+        selected_order_ids = self.request.POST.getlist('deliver_orders')
+        
+        # Use the complete() method on the PickupSession model to process orders
+        session.complete(selected_order_ids)
+                
+        # Generate summary information for success message
+        customer = session.customer
+        delivered_count = Order.objects.filter(
+            customer=customer,
+            status='delivered'
+        ).count()
+        
+        returned_count = Order.objects.filter(
+            customer=customer,
+            status='returned'
+        ).count()
+        
+        pending_count = Order.objects.filter(
+            customer=customer,
             status='pending',
-            marked_for_return=True
+            reception_status='received'
+        ).count()
+        
+        messages.success(
+            self.request, 
+            f'Выдача завершена: {delivered_count} выдано, {returned_count} возвращено, {pending_count} оставлено.'
         )
 
-        # Create return records and update status
-        for order in orders_to_return:
-            order.status = 'returned'
-            order.save()
-
-            # Create return record if we have a reason
-            if order.return_reason_id:
-                reason = ReturnReason.objects.get(id=order.return_reason_id)
-                OrderReturn.objects.create(
-                    order=order,
-                    reason=reason,
-                    notes=order.return_notes or ''
-                )
-
-        # Mark the session as completed
-        session.is_active = False
-        session.completed_at = now
-        session.save()
-
-        # Free up storage cell if all orders processed
-        if not Order.objects.filter(customer=session.customer, status='pending').exists():
-            cells = StorageCell.objects.filter(current_customer=session.customer)
-            for cell in cells:
-                cell.is_occupied = False
-                cell.current_customer = None
-                cell.save()
-
-        messages.success(self.request, 'Выдача заказов успешно завершена')
-        return redirect('delivery_summary', order_id=session.customer.id)
+        return redirect('delivery_summary', order_id=customer.id)
 
 
 class OrderSearchView(TemplateView):
@@ -410,72 +368,75 @@ class OrderReceivingView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
-        # Get all available cells
-        available_cells = StorageCell.objects.filter(is_occupied=False)
+        # Get available cells and optimize the query with only one database hit
+        available_cells = StorageCell.get_available().order_by('number')
         context['available_cells'] = available_cells
         context['available_cell_count'] = available_cells.count()
         
-        # Get recent received orders
+        # Get recent received orders - limit to 15 for better performance
         context['recent_orders'] = Order.objects.filter(
-            received_at__isnull=False
-        ).order_by('-received_at')[:50]
+            reception_status='received'
+        ).order_by('-received_at')[:15]
         
         # Get pending orders that haven't been received yet
+        # Use select_related to reduce database queries
         context['pending_orders'] = Order.objects.filter(
             reception_status='pending',
             status='pending'
-        ).select_related('customer').order_by('created_at')
+        ).select_related('customer').order_by('created_at')[:30]
+        
+        # Add search form context if there was a search
+        order_id = self.request.GET.get('search_order_id')
+        if order_id:
+            try:
+                order = Order.objects.get(order_id=order_id)
+                context['searched_order'] = order
+            except Order.DoesNotExist:
+                context['search_error'] = f'Заказ с ID {order_id} не найден'
         
         return context
     
     def post(self, request, *args, **kwargs):
         order_id = request.POST.get('order_id')
-        customer_id = request.POST.get('customer_id')
         
-        if order_id:
-            # Validate order_id format if needed
-            try:
-                order = Order.objects.get(order_id=order_id)
-                
-                # Check if this customer already has a cell assigned
-                customer_cell = StorageCell.objects.filter(
-                    current_customer=order.customer,
-                    is_occupied=True
-                ).first()
-                
-                if not customer_cell:
-                    # Find first available cell
-                    available_cell = StorageCell.objects.filter(is_occupied=False).first()
-                    
-                    if available_cell:
-                        available_cell.is_occupied = True
-                        available_cell.current_customer = order.customer
-                        available_cell.save()
-                        customer_cell = available_cell
-                    else:
-                        messages.error(request, 'Нет свободных ячеек')
-                        return redirect('order_receiving')
-                
-                # Assign order to cell and update reception status
-                order.storage_cell = customer_cell
-                order.reception_status = 'received'  # Set the reception status explicitly
-                order.received_at = timezone.now()
-                order.save()
-                
-                messages.success(request, f'Заказ {order.order_id} принят в ячейку {customer_cell.number}')
-            except Order.DoesNotExist:
-                messages.error(request, f'Заказ с ID {order_id} не найден')
-        elif customer_id:
-            # Add validation for customer_id
-            if not customer_id.isdigit():
-                messages.error(request, 'ID клиента должен быть числом')
+        if not order_id:
+            messages.error(request, 'Необходимо указать ID заказа')
+            return redirect('order_receiving')
+            
+        try:
+            # Get the order
+            order = Order.objects.get(order_id=order_id)
+            
+            # Check if the order is already received
+            if order.reception_status == 'received':
+                messages.warning(request, f'Заказ {order.order_id} уже был принят ранее (ячейка: {order.storage_cell})')
                 return redirect('order_receiving')
                 
-            try:
-                customer = Customer.objects.get(id=customer_id)
-                # Process customer-related operations
-            except Customer.DoesNotExist:
-                messages.error(request, f'Клиент с ID {customer_id} не найден')
+            # Check if this customer already has a cell assigned
+            customer_cell = StorageCell.objects.filter(
+                current_customer=order.customer,
+                is_occupied=True
+            ).first()
+            
+            if not customer_cell:
+                # Find first available cell
+                available_cell = StorageCell.get_available().first()
+                
+                if available_cell:
+                    customer_cell = available_cell
+                else:
+                    messages.error(request, 'Нет свободных ячеек для размещения заказа')
+                    return redirect('order_receiving')
+            
+            # Complete the receipt process using our new helper method
+            order.complete_receipt(customer_cell)
+            
+            messages.success(request, f'Заказ {order.order_id} успешно принят в ячейку {customer_cell.number}')
+            
+        except Order.DoesNotExist:
+            messages.error(request, f'Заказ с ID {order_id} не найден')
+        except Exception as e:
+            messages.error(request, f'Ошибка при приеме заказа: {str(e)}')
         
         return redirect('order_receiving')
 
@@ -567,12 +528,18 @@ class SystemView(TemplateView):
         elif action == 'generate_orders':
             count = int(request.POST.get('count', 20))
             self._generate_orders(count)
-            messages.success(request, f'Создано {count} заказов')
+            messages.success(request, f'Создано {count} заказов со статусом "ожидают приемки"')
             
         elif action == 'generate_cells':
             count = int(request.POST.get('count', 10))
-            self._generate_cells(count)
-            messages.success(request, f'Создано {count} ячеек хранения')
+            cells_created = self._generate_cells(count)
+            
+            if cells_created == 0:
+                messages.warning(request, 'Достигнут лимит в 50 ячеек хранения. Новые ячейки не созданы.')
+            elif cells_created < count:
+                messages.info(request, f'Создано только {cells_created} ячеек хранения (достигнут лимит в 50 ячеек).')
+            else:
+                messages.success(request, f'Создано {cells_created} ячеек хранения')
             
         elif action == 'clear_data':
             Order.objects.all().delete()
@@ -582,7 +549,7 @@ class SystemView(TemplateView):
             
         elif action == 'seed_reasons':
             self._seed_return_reasons()
-            messages.success(request, 'Причины возврата добавлены')
+            messages.success(request, 'Причины возврата добавлены (необходимы для категоризации возвратов при оформлении отказа)')
         
         return redirect('system')
     
@@ -601,7 +568,6 @@ class SystemView(TemplateView):
             
         faker = Faker('ru_RU')
         customers = list(Customer.objects.all())
-        cells = list(StorageCell.objects.filter(is_occupied=False))
         
         # Generate some predefined product data
         products = [
@@ -621,48 +587,65 @@ class SystemView(TemplateView):
             customer = random.choice(customers)
             product = random.choice(products)
             
-            # Check if customer already has a cell
-            customer_cell = StorageCell.objects.filter(current_customer=customer, is_occupied=True).first()
-            
-            # If no cell assigned and we have available cells, assign one
-            if not customer_cell and cells:
-                cell = random.choice(cells)
-                cell.is_occupied = True
-                cell.current_customer = customer
-                cell.save()
-                cells.remove(cell)
-                customer_cell = cell
-            
-            # Only create order if we have a cell
-            if customer_cell:
-                # Randomly decide if the order is already received or still pending for reception
-                is_received = random.choice([True, False])
-                received_timestamp = timezone.now() - timedelta(days=random.randint(0, 5)) if is_received else None
-                
-                # Create order with fields that match the Order model
-                Order.objects.create(
-                    name=product['name'],
-                    customer=customer,
-                    description=faker.text(max_nb_chars=100),
-                    size=random.choice(product['sizes']),
-                    color=random.choice(product['colors']),
-                    price=round(random.uniform(500, 15000), 2),
-                    payment_status=random.choice(['prepaid', 'postpaid']),
-                    status='pending',
-                    reception_status='received' if is_received else 'pending',
-                    barcode=faker.ean(length=13),
-                    storage_cell=customer_cell,
-                    received_at=received_timestamp
-                )
-    
-    def _generate_cells(self, count):
-        for i in range(1, count + 1):
-            StorageCell.objects.create(
-                number=f"A{i:03d}",
-                is_occupied=False
+            # Create order with pending reception status and no cell assignment
+            Order.objects.create(
+                name=product['name'],
+                customer=customer,
+                description=faker.text(max_nb_chars=100),
+                size=random.choice(product['sizes']),
+                color=random.choice(product['colors']),
+                price=round(random.uniform(500, 15000), 2),
+                payment_status=random.choice(['prepaid', 'postpaid']),
+                status='pending',
+                reception_status='pending',  # All orders are now pending reception
+                barcode=faker.ean(length=13),
+                storage_cell=None,  # No cell assignment on creation
+                received_at=None    # Not received yet
             )
     
+    def _generate_cells(self, count):
+        # Prevent creating more than 50 cells total
+        existing_count = StorageCell.objects.count()
+        if (existing_count >= 50):
+            return 0  # Return 0 cells created
+        
+        # Limit the count to not exceed 50 total cells
+        if (existing_count + count > 50):
+            count = 50 - existing_count
+            
+        # Get existing cell numbers to avoid duplicates
+        existing_numbers = set(StorageCell.objects.values_list('number', flat=True))
+        
+        # Create cells with different section prefixes
+        sections = ['A', 'B', 'C', 'D', 'E']
+        cells_created = 0
+        
+        for section in sections:
+            for i in range(1, 50):  # Try numbers 1-49 in each section
+                if (cells_created >= count):
+                    break
+                    
+                number = f"{section}{i:03d}"
+                if (number not in existing_numbers):
+                    StorageCell.objects.create(
+                        number=number,
+                        is_occupied=False
+                    )
+                    existing_numbers.add(number)
+                    cells_created += 1
+        
+        return cells_created
+    
     def _seed_return_reasons(self):
+        """
+        Эта функция создает причины для возврата товаров.
+        
+        Причины возврата необходимы для:
+        1. Категоризации возвратов (нераспакованные vs распакованные товары)
+        2. Аналитики возвратов для улучшения сервиса
+        3. Корректного финансового учета возвратов
+        4. Информирования поставщиков о причинах возврата
+        """
         # Remove existing reasons
         ReturnReason.objects.all().delete()
         
@@ -681,7 +664,7 @@ class SystemView(TemplateView):
 def get_customer(request):
     customer_id = request.GET.get('customer_id')
     
-    if customer_id:
+    if (customer_id):
         # Validate that customer_id is numeric before attempting to retrieve the customer
         if (customer_id.isdigit()):
             try:
@@ -693,11 +676,11 @@ def get_customer(request):
         else:
             # Search by name if input is not numeric
             customers = Customer.objects.filter(name__icontains=customer_id)
-            if customers.count() == 1:
+            if (customers.count() == 1):
                 # If exactly one match, go directly to that customer
                 customer = customers.first()
                 return redirect('pickup_process', pk=customer.id)
-            elif customers.count() > 1:
+            elif (customers.count() > 1):
                 # If multiple matches, pass them to the template for selection
                 messages.info(request, f'Найдено {customers.count()} клиента с этим именем. Пожалуйста, выберите нужного клиента.')
                 return render(request, 'core/customer_search.html', {'customers': customers})
@@ -734,7 +717,7 @@ class PickupCloseView(UpdateView):
         session.completed_at = timezone.now()
         
         # Store the cancel reason if provided
-        if cancel_reason:
+        if (cancel_reason):
             session.notes = f"Closed with reason: {cancel_reason}"
         
         session.save()
@@ -803,16 +786,14 @@ class OrderReturnCancelView(UpdateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         order = self.get_object()
+        context['order'] = order
         return context
     
     def post(self, request, *args, **kwargs):
         order = self.get_object()
         
-        # Снимаем пометку возврата
-        order.marked_for_return = False
-        order.return_reason_id = None
-        order.return_notes = None
-        order.save()
+        # Use the model method to cancel return
+        order.cancel_return()
         
         messages.success(request, f'Возврат заказа {order.order_id} отменен')
         return redirect('pickup_process', pk=order.customer.pk)
@@ -836,7 +817,7 @@ class StorageVisualizationView(TemplateView):
         
         # Поиск по номеру ячейки
         search_query = self.request.GET.get('search', '')
-        if search_query:
+        if (search_query):
             cells = StorageCell.objects.filter(number__icontains=search_query).order_by('number')
         else:
             cells = StorageCell.objects.all().order_by('number')

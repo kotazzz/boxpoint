@@ -1,6 +1,7 @@
 from django.db import models
 import shortuuid
 from django.utils import timezone
+from django.core.exceptions import ValidationError
 
 
 def generate_order_id():
@@ -15,6 +16,21 @@ class Customer(models.Model):
     
     def __str__(self):
         return f"{self.name} ({self.phone})"
+    
+    def get_pending_orders(self):
+        """Return orders ready for pickup"""
+        return self.orders.filter(
+            status='pending',
+            reception_status='received'
+        )
+        
+    def get_total_orders_count(self):
+        """Return the total count of all customer orders"""
+        return self.orders.count()
+    
+    def has_active_pickup_session(self):
+        """Check if customer has an active pickup session"""
+        return self.pickup_sessions.filter(is_active=True).exists()
     
     class Meta:
         verbose_name = "Клиент"
@@ -37,9 +53,27 @@ class StorageCell(models.Model):
         status = "Занята" if self.is_occupied else "Свободна"
         return f"Ячейка {self.number} ({status})"
     
+    def assign_to_customer(self, customer):
+        """Assign cell to a customer"""
+        self.is_occupied = True
+        self.current_customer = customer
+        self.save()
+    
+    def release(self):
+        """Release cell (mark as unoccupied)"""
+        self.is_occupied = False
+        self.current_customer = None
+        self.save()
+    
+    @classmethod
+    def get_available(cls):
+        """Get all available cells"""
+        return cls.objects.filter(is_occupied=False)
+    
     class Meta:
         verbose_name = "Ячейка хранения"
         verbose_name_plural = "Ячейки хранения"
+        ordering = ['number']  # Sort cells by number
 
 
 class Order(models.Model):
@@ -80,7 +114,7 @@ class Order(models.Model):
     delivered_at = models.DateTimeField(null=True, blank=True, verbose_name="Дата выдачи")
     is_under_inspection = models.BooleanField(default=False, verbose_name="На проверке")
     notes = models.TextField(blank=True, null=True, verbose_name="Примечания")
-    # Новые поля для отложенного возврата
+    # Возвратные поля
     marked_for_return = models.BooleanField(default=False, verbose_name="Отмечен для возврата")
     return_reason_id = models.IntegerField(blank=True, null=True, verbose_name="ID причины возврата")
     return_notes = models.TextField(blank=True, null=True, verbose_name="Примечания к возврату")
@@ -90,7 +124,71 @@ class Order(models.Model):
     
     def is_available_for_pickup(self):
         """Check if this order is available for pickup"""
-        return self.reception_status == 'received' and not self.is_picked_up
+        return self.reception_status == 'received' and not self.is_picked_up and self.status == 'pending'
+    
+    def complete_receipt(self, storage_cell=None):
+        """Mark order as received and assign to storage cell"""
+        now = timezone.now()
+        
+        self.reception_status = 'received'
+        self.reception_date = now
+        self.received_at = now
+        
+        if storage_cell:
+            self.storage_cell = storage_cell
+            storage_cell.assign_to_customer(self.customer)
+            
+        self.save()
+        return True
+        
+    def mark_delivered(self):
+        """Mark order as delivered"""
+        self.status = 'delivered'
+        self.delivered_at = timezone.now()
+        self.is_picked_up = True
+        self.save()
+        
+    def mark_for_return(self, reason_id, notes=None):
+        """Mark order for return"""
+        self.marked_for_return = True
+        self.return_reason_id = reason_id
+        if notes:
+            self.return_notes = notes
+        self.save()
+        
+    def cancel_return(self):
+        """Cancel return"""
+        self.marked_for_return = False
+        self.return_reason_id = None
+        self.return_notes = None
+        self.save()
+        
+    def process_return(self):
+        """Process return and update order status"""
+        if not self.marked_for_return or not self.return_reason_id:
+            return False
+            
+        self.status = 'returned'
+        self.save()
+        
+        # Create return record
+        reason = ReturnReason.objects.get(id=self.return_reason_id)
+        OrderReturn.objects.create(
+            order=self,
+            reason=reason,
+            notes=self.return_notes or ''
+        )
+        return True
+    
+    def clean(self):
+        """Validate model instance"""
+        # Ensure consistency between status and dates
+        if self.status == 'delivered' and not self.delivered_at:
+            raise ValidationError('Delivered orders must have a delivery date')
+            
+        # Check return consistency
+        if self.status == 'returned' and not self.return_reason_id:
+            raise ValidationError('Returned orders must have a return reason')
     
     def save(self, *args, **kwargs):
         if self.reception_status == 'received' and not self.reception_date:
@@ -160,8 +258,6 @@ class PickupSession(models.Model):
     
     def cancel(self, reason=None):
         """Cancel the pickup session and reset all associated orders"""
-        from django.utils import timezone
-        
         self.is_cancelled = True
         self.is_active = False
         self.completed_at = timezone.now()
@@ -177,6 +273,39 @@ class PickupSession(models.Model):
         
         self.save()
         return True
+        
+    def complete(self, selected_order_ids=None):
+        """Complete the pickup session and process all orders"""
+        now = timezone.now()
+        orders = self.orders.all()
+        
+        # Process orders marked for return
+        orders_to_return = orders.filter(marked_for_return=True)
+        for order in orders_to_return:
+            order.process_return()
+            
+        # Process orders for delivery
+        if selected_order_ids:
+            for order in orders.filter(marked_for_return=False):
+                if str(order.id) in selected_order_ids:
+                    order.mark_delivered()
+        
+        # Mark session as completed
+        self.is_active = False
+        self.completed_at = now
+        self.save()
+        
+        # Check if we can release storage cells
+        remaining_pending_orders = Order.objects.filter(
+            customer=self.customer, 
+            status='pending', 
+            reception_status='received'
+        ).exists()
+        
+        if not remaining_pending_orders:
+            cells = StorageCell.objects.filter(current_customer=self.customer)
+            for cell in cells:
+                cell.release()
     
     class Meta:
         verbose_name = "Сессия выдачи"

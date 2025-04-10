@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container py-3">
+    <div class="row mb-3">
+        <div class="col">
+            <h3 class="mb-3">Статистика склада</h3>
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <div class="card border-primary h-100">
+                        <div class="card-body py-2">
+                            <h5 class="card-title">Занято ячеек</h5>
+                            <p class="card-text">{{ occupied_cells }}/{{ total_cells }} ({{ occupied_percentage }}%)</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-success h-100">
+                        <div class="card-body py-2">
+                            <h5 class="card-title">Позиции на складе</h5>
+                            <p class="card-text">{{ items_count }}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card border-warning h-100">
+                        <div class="card-body py-2">
+                            <h5 class="card-title">Товары на руках</h5>
+                            <p class="card-text">{{ issued_items_count }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col">
+            <h3 class="mb-2">Последние поступления</h3>
+            <div class="table-responsive">
+                <table class="table table-sm table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Товар</th>
+                            <th>Дата</th>
+                            <th>Количество</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in recent_arrivals %}
+                        <tr>
+                            <td><a href="{% url 'item_detail' item.id %}">{{ item.name }}</a></td>
+                            <td>{{ item.arrival_date|date:"d.m.Y" }}</td>
+                            <td>{{ item.quantity }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3">Нет данных о поступлениях</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <a href="{% url 'items' %}" class="btn btn-sm btn-outline-primary">Все товары</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <h3 class="mb-2">Последние выдачи</h3>
+            <div class="table-responsive">
+                <table class="table table-sm table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Товар</th>
+                            <th>Сотрудник</th>
+                            <th>Дата выдачи</th>
+                            <th>Количество</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for issue in recent_issues %}
+                        <tr>
+                            <td><a href="{% url 'item_detail' issue.item.id %}">{{ issue.item.name }}</a></td>
+                            <td>{{ issue.employee }}</td>
+                            <td>{{ issue.issue_date|date:"d.m.Y" }}</td>
+                            <td>{{ issue.quantity }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4">Нет данных о выдачах</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <a href="{% url 'issues' %}" class="btn btn-sm btn-outline-primary">Все выдачи</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

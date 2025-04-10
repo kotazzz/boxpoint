@@ -113,6 +113,32 @@
         box-shadow: 0 1px 0 rgba(0,0,0,0.2);
     }
     
+    .cell-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        gap: 0.5rem;
+    }
+    
+    .storage-cell {
+        text-align: center;
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+    }
+    
+    .storage-cell.free {
+        background-color: #d1e7dd;
+        color: #0a3622;
+    }
+    
+    .storage-cell.free:hover {
+        background-color: #0a3622;
+        color: white;
+        transform: translateY(-2px);
+    }
+    
     /* Responsive adjustments */
     @media (max-width: 768px) {
         .card-header .d-flex {
@@ -128,338 +154,383 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h1 class="h3 mb-0 d-flex align-items-center">
-                <i class="fas fa-truck-loading me-2"></i> Прием заказов
-                <span class="badge rounded-pill bg-primary ms-2">{{ pending_orders|length }}</span>
-            </h1>
-            <p class="text-muted small mb-0">Управление приемом заказов и распределением по ячейкам</p>
-        </div>
-        <div class="d-flex">
-            <a href="{% url 'home' %}" class="btn btn-outline-secondary">
-                <i class="fas fa-home"></i> На главную
-            </a>
-        </div>
-    </div>
-    
-    <div class="row g-4">
-        <!-- Left Column -->
-        <div class="col-lg-7 col-xl-8">
-            <!-- Scanner and Quick Order Entry -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <div>
-                        <h5 class="mb-0"><i class="fas fa-barcode me-2"></i>Быстрый прием заказа</h5>
-                    </div>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-sm btn-outline-secondary active" id="manual-btn">
-                            <i class="fas fa-keyboard me-1"></i> Вручную
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="scanner-btn">
-                            <i class="fas fa-camera me-1"></i> Сканер
-                        </button>
-                    </div>
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card bg-success text-white">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h1 class="h3 mb-0"><i class="fas fa-truck-loading me-2"></i> Прием заказов</h1>
+                    <p class="mb-0">Управление входящими заказами и размещением по ячейкам</p>
                 </div>
-                <div class="card-body">
-                    <!-- Manual Input Form -->
-                    <div id="manual-input" class="mb-0">
-                        <form method="post" class="row g-3" id="order-receive-form">
-                            {% csrf_token %}
-                            
-                            <div class="col-md-8">
-                                <div class="form-floating">
-                                    <input type="text" class="form-control" id="order_id" name="order_id" 
-                                        required placeholder="Введите ID заказа" autocomplete="off" autofocus>
-                                    <label for="order_id">ID заказа <span class="text-danger">*</span></label>
-                                </div>
-                                <div class="form-text">Введите ID заказа для приема <span class="keyboard-shortcut">Enter</span> для подтверждения</div>
-                            </div>
-                            
-                            <div class="col-md-4 d-grid">
-                                <button type="submit" class="btn btn-primary btn-lg h-100">
-                                    <i class="fas fa-check me-1"></i> Принять
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                    
-                    <!-- Scanner Interface -->
-                    <div id="scanner-input" class="mb-0" style="display:none">
-                        <div class="scanner-container">
-                            <div class="scanner-overlay" id="scanner-trigger">
-                                <div class="mb-3">
-                                    <i class="fas fa-camera fa-3x text-muted"></i>
-                                </div>
-                                <p class="mb-1">Нажмите здесь для активации сканера</p>
-                                <small class="text-muted">Поддерживаются штрих-коды и QR-коды</small>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="alert alert-info mt-3 mb-0">
-                        <div class="d-flex align-items-center">
-                            <div class="flex-shrink-0">
-                                <i class="fas fa-info-circle fa-2x me-3"></i>
-                            </div>
-                            <div>
-                                <p class="mb-1"><strong>Информация о размещении:</strong></p>
-                                <ul class="mb-0 ps-3">
-                                    <li>Заказ будет помещен в первую доступную ячейку</li>
-                                    <li>Если у клиента уже есть ячейка, заказ будет помещен в нее</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Pending Orders Section -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-clock text-warning me-2"></i>Ожидающие приема
-                        <span class="badge rounded-pill bg-warning text-dark">{{ pending_orders|length }}</span>
-                    </h5>
-                    
-                    <div class="search-container">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="pending-orders-search" class="form-control form-control-sm" 
-                            placeholder="Поиск заказов...">
-                    </div>
-                </div>
-                <div class="card-body p-0">
-                    {% if pending_orders %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0" id="pending-orders-table">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Наименование</th>
-                                    <th>Клиент</th>
-                                    <th class="text-end">Действие</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for order in pending_orders %}
-                                <tr data-order-id="{{ order.order_id }}">
-                                    <td class="order-id-cell">{{ order.order_id }}</td>
-                                    <td>{{ order.name|truncatechars:30 }}</td>
-                                    <td>
-                                        <span class="d-inline-block text-truncate" style="max-width: 150px;">
-                                            {{ order.customer.name }}
-                                        </span>
-                                    </td>
-                                    <td class="text-end">
-                                        <form method="post" class="d-inline">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="order_id" value="{{ order.order_id }}">
-                                            <button type="submit" class="btn btn-sm btn-success">
-                                                <i class="fas fa-check me-1"></i> Принять
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-info m-3">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-info-circle me-3"></i>
-                            <span>Нет заказов, ожидающих приема</span>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <!-- Recent Orders Section -->
-            <div class="card shadow-sm">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-history text-success me-2"></i>Недавно принятые заказы
-                    </h5>
-                    
-                    <div class="search-container">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="recent-orders-search" class="form-control form-control-sm" 
-                            placeholder="Поиск в истории...">
-                    </div>
-                </div>
-                <div class="card-body p-0">
-                    {% if recent_orders %}
-                    <div class="table-responsive">
-                        <table class="table table-hover mb-0" id="recent-orders-table">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Наименование</th>
-                                    <th>Клиент</th>
-                                    <th>Ячейка</th>
-                                    <th>Дата</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for order in recent_orders|slice:":15" %}
-                                <tr>
-                                    <td class="order-id-cell">{{ order.order_id }}</td>
-                                    <td>
-                                        <span class="d-inline-block text-truncate" style="max-width: 150px;" 
-                                              title="{{ order.name }}">
-                                            {{ order.name }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="d-inline-block text-truncate" style="max-width: 150px;" 
-                                              title="{{ order.customer.name }}">
-                                            {{ order.customer.name }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-secondary">{{ order.storage_cell.number }}</span>
-                                    </td>
-                                    <td><small>{{ order.received_at|date:"d.m.Y H:i" }}</small></td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    {% if recent_orders|length > 15 %}
-                    <div class="text-center py-2 border-top">
-                        <button class="btn btn-sm btn-link" id="load-more-btn">
-                            Показать все ({{ recent_orders|length }})
-                        </button>
-                    </div>
-                    {% endif %}
-                    
-                    {% else %}
-                    <div class="alert alert-info m-3">
-                        <i class="fas fa-info-circle me-2"></i> Нет недавно принятых заказов
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        
-        <!-- Right Column -->
-        <div class="col-lg-5 col-xl-4">
-            <!-- Storage Status Card -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0"><i class="fas fa-boxes text-info me-2"></i>Статус хранения</h5>
-                </div>
-                <div class="card-body">
-                    <!-- Available Cells Stats -->
-                    <div class="row align-items-center mb-3">
-                        <div class="col">
-                            <h6 class="mb-0">Доступные ячейки</h6>
-                            <small class="text-muted">Свободно для размещения</small>
-                        </div>
-                        <div class="col-auto">
-                            {% if available_cell_count > 10 %}
-                                <span class="badge rounded-pill bg-success fs-6">{{ available_cell_count }}</span>
-                            {% elif available_cell_count > 0 %}
-                                <span class="badge rounded-pill bg-warning fs-6">{{ available_cell_count }}</span>
-                            {% else %}
-                                <span class="badge rounded-pill bg-danger fs-6">0</span>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <!-- Progress bar visualization -->
-                    {% with total_cells=available_cells|length %}
-                    {% if total_cells > 0 %}
-                    {% with percent_used=available_cell_count|floatformat:0 %}
-                    <div class="progress mb-4" style="height: 10px;">
-                        <div class="progress-bar bg-success" role="progressbar" 
-                             style="width: {% widthratio available_cell_count total_cells 100 %}%;" 
-                             aria-valuenow="{{ percent_used }}" aria-valuemin="0" aria-valuemax="100">
-                        </div>
-                    </div>
-                    {% endwith %}
-                    {% endif %}
-                    {% endwith %}
-                    
-                    {% if available_cell_count > 0 %}
-                    <div class="d-flex flex-wrap mb-3">
-                        {% for cell in available_cells %}
-                        <div class="me-1 mb-1">
-                            <span class="badge bg-success cell-badge">{{ cell.number }}</span>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="alert alert-danger mb-3">
-                        <div class="d-flex align-items-center">
-                            <i class="fas fa-exclamation-triangle me-3"></i>
-                            <div>
-                                <strong>Внимание!</strong> Нет свободных ячеек для приема заказов.
-                            </div>
-                        </div>
-                    </div>
-                    {% endif %}
-                    
-                    <!-- Tips -->
-                    <div class="card bg-light border-0">
-                        <div class="card-body p-3">
-                            <h6><i class="fas fa-lightbulb text-warning me-2"></i>Советы</h6>
-                            <ul class="mb-0 ps-3 small">
-                                <li>Заказы клиента помещаются в общую ячейку</li>
-                                <li>При заполнении ячейки система автоматически назначит новую</li>
-                                <li>Для ускорения работы используйте сканер штрих-кодов</li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Activity Feed -->
-            <div class="card shadow-sm">
-                <div class="card-header bg-white">
-                    <h5 class="mb-0"><i class="fas fa-list-alt text-primary me-2"></i>Лента активности</h5>
-                </div>
-                <div class="card-body p-0">
-                    <div class="list-group list-group-flush recent-activity">
-                        {% for order in recent_orders|slice:":8" %}
-                        <div class="list-group-item border-0">
-                            <div class="activity-item">
-                                <div class="d-flex w-100 justify-content-between">
-                                    <h6 class="mb-1">Принят заказ #{{ order.order_id }}</h6>
-                                    <small>{{ order.received_at|date:"H:i" }}</small>
-                                </div>
-                                <p class="mb-1 text-truncate">{{ order.name }}</p>
-                                <small class="d-flex justify-content-between">
-                                    <span>{{ order.customer.name|truncatechars:25 }}</span>
-                                    <span class="badge bg-secondary">Ячейка {{ order.storage_cell.number }}</span>
-                                </small>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="list-group-item text-center py-4 text-muted">
-                            <i class="fas fa-inbox fa-2x mb-2"></i>
-                            <p class="mb-0">Нет данных об активности</p>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    
-                    {% if recent_orders|length > 0 %}
-                    <div class="card-footer bg-white text-center py-2">
-                        <a href="#" class="btn btn-sm btn-outline-primary">
-                            Показать все активности <i class="fas fa-arrow-right ms-1"></i>
-                        </a>
-                    </div>
-                    {% endif %}
+                <div>
+                    <span class="badge bg-light text-success fs-4">{{ available_cell_count }}</span>
+                    <div class="text-white-50 small">свободных ячеек</div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-{% block extra_scripts %}
+<div class="row g-4">
+    <!-- Left Column -->
+    <div class="col-lg-7 col-xl-8">
+        <!-- Scanner and Quick Order Entry -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0"><i class="fas fa-barcode me-2"></i>Прием заказа</h5>
+                </div>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-outline-secondary active" id="manual-btn">
+                        <i class="fas fa-keyboard me-1"></i> Вручную
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="scanner-btn">
+                        <i class="fas fa-camera me-1"></i> Сканер
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if search_error %}
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    {{ search_error }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+                </div>
+                {% endif %}
+                
+                {% if searched_order %}
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    Найден заказ <strong>{{ searched_order.order_id }}</strong>: {{ searched_order.name }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+                </div>
+                {% endif %}
+                
+                <!-- Manual Input Form -->
+                <div id="manual-input" class="mb-3">
+                    <form method="post" class="row g-3" id="order-receive-form">
+                        {% csrf_token %}
+                        
+                        <div class="col-md-8">
+                            <div class="form-floating">
+                                <input type="text" class="form-control" id="order_id" name="order_id" 
+                                    required placeholder="Введите ID заказа" autocomplete="off" autofocus>
+                                <label for="order_id">ID заказа <span class="text-danger">*</span></label>
+                            </div>
+                            <div class="form-text">Введите ID заказа для приема <span class="keyboard-shortcut">Enter</span> для подтверждения</div>
+                        </div>
+                        
+                        <div class="col-md-4 d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg h-100">
+                                <i class="fas fa-check me-1"></i> Принять заказ
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <!-- Scanner Interface -->
+                <div id="scanner-input" class="mb-3" style="display:none">
+                    <div class="scanner-container">
+                        <div class="scanner-overlay" id="scanner-trigger">
+                            <div class="mb-3">
+                                <i class="fas fa-camera fa-3x text-muted"></i>
+                            </div>
+                            <p class="mb-1">Нажмите здесь для активации сканера</p>
+                            <small class="text-muted">Поддерживаются штрих-коды и QR-коды</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info mb-0">
+                    <div class="d-flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-info-circle fa-2x me-3"></i>
+                        </div>
+                        <div>
+                            <p class="mb-1"><strong>Информация о размещении:</strong></p>
+                            <ul class="mb-0 ps-3">
+                                <li>Заказ будет помещен в первую доступную ячейку</li>
+                                <li>Если у клиента уже есть ячейка, заказ будет помещен в нее</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+            
+        <!-- Pending Orders Section -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-clock text-warning me-2"></i>Ожидающие приема
+                    <span class="badge rounded-pill bg-warning text-dark">{{ pending_orders|length }}</span>
+                </h5>
+                
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="pending-orders-search" class="form-control form-control-sm" 
+                        aria-label="Поиск в ожидающих заказах" placeholder="Поиск заказов...">
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% if pending_orders %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="pending-orders-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Наименование</th>
+                                <th>Клиент</th>
+                                <th class="text-end">Действие</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in pending_orders %}
+                            <tr data-order-id="{{ order.order_id }}">
+                                <td class="order-id-cell">{{ order.order_id }}</td>
+                                <td>
+                                    <span class="d-inline-block text-truncate" style="max-width: 200px;" title="{{ order.name }}">
+                                        {{ order.name }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="d-inline-block text-truncate" style="max-width: 150px;" title="{{ order.customer.name }}">
+                                        {{ order.customer.name }}
+                                    </span>
+                                </td>
+                                <td class="text-end">
+                                    <form method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="order_id" value="{{ order.order_id }}">
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="fas fa-check me-1"></i> Принять
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <div class="display-4 text-success mb-3">
+                        <i class="far fa-check-circle"></i>
+                    </div>
+                    <h5>Нет заказов, ожидающих приема</h5>
+                    <p class="text-muted">Все заказы обработаны</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+            
+        <!-- Recent Orders Section -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-history text-success me-2"></i>Недавно принятые заказы
+                </h5>
+                
+                <div class="search-container">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="recent-orders-search" class="form-control form-control-sm" 
+                        aria-label="Поиск в недавних заказах" placeholder="Поиск в истории...">
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% if recent_orders %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="recent-orders-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID</th>
+                                <th>Наименование</th>
+                                <th>Клиент</th>
+                                <th>Ячейка</th>
+                                <th>Дата</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders|slice:":15" %}
+                            <tr>
+                                <td class="order-id-cell">{{ order.order_id }}</td>
+                                <td>
+                                    <span class="d-inline-block text-truncate" style="max-width: 200px;" 
+                                          title="{{ order.name }}">
+                                        {{ order.name }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="d-inline-block text-truncate" style="max-width: 150px;" 
+                                          title="{{ order.customer.name }}">
+                                        {{ order.customer.name }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ order.storage_cell.number }}</span>
+                                </td>
+                                <td><small>{{ order.received_at|date:"d.m.Y H:i" }}</small></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if recent_orders|length > 15 %}
+                <div class="text-center py-2 border-top">
+                    <button class="btn btn-sm btn-link" id="load-more-btn">
+                        Показать все ({{ recent_orders|length }})
+                    </button>
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <div class="alert alert-info m-3">
+                    <i class="fas fa-info-circle me-2"></i> Нет недавно принятых заказов
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Column -->
+    <div class="col-lg-5 col-xl-4">
+        <!-- Storage Status Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-boxes text-primary me-2"></i>Ячейки хранения</h5>
+            </div>
+            <div class="card-body">
+                <!-- Available Cells Stats -->
+                <div class="row align-items-center mb-4">
+                    <div class="col">
+                        <h6 class="mb-0">Доступные ячейки</h6>
+                        <small class="text-muted">Свободно для размещения</small>
+                    </div>
+                    <div class="col-auto">
+                        {% if available_cell_count > 10 %}
+                            <span class="badge rounded-pill bg-success fs-6">{{ available_cell_count }}</span>
+                        {% elif available_cell_count > 0 %}
+                            <span class="badge rounded-pill bg-warning fs-6">{{ available_cell_count }}</span>
+                        {% else %}
+                            <span class="badge rounded-pill bg-danger fs-6">0</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Progress bar visualization -->
+                {% if total_cells_count > 0 %}
+                <div class="progress mb-3" style="height: 10px;">
+                    {% with free_percent=free_cells_count|floatformat:0 %}
+                    <div class="progress-bar bg-success" role="progressbar" 
+                         style="width: {% widthratio free_cells_count total_cells_count 100 %}%;" 
+                         aria-valuenow="{{ free_percent }}" aria-valuemin="0" aria-valuemax="100">
+                    </div>
+                    {% endwith %}
+                </div>
+                
+                <div class="d-flex justify-content-between text-muted small mb-4">
+                    <span>{{ free_cells_count }} свободно</span>
+                    <span>{{ total_cells_count }} всего</span>
+                </div>
+                {% endif %}
+                
+                {% if available_cell_count > 0 %}
+                <div class="mb-4">
+                    <h6 class="mb-2">Свободные ячейки:</h6>
+                    <div class="cell-grid">
+                        {% for cell in available_cells|slice:":24" %}
+                        <div class="storage-cell free">
+                            {{ cell.number }}
+                        </div>
+                        {% endfor %}
+                        
+                        {% if available_cells|length > 24 %}
+                        <div class="storage-cell free">...</div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if available_cells|length > 24 %}
+                    <div class="text-center mt-2">
+                        <small>И еще {{ available_cells|length|add:"-24" }} ячеек</small>
+                    </div>
+                    {% endif %}
+                </div>
+                {% else %}
+                <div class="alert alert-danger mb-4">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-exclamation-triangle me-3"></i>
+                        <div>
+                            <strong>Внимание!</strong> Нет свободных ячеек для приема заказов.
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Tips -->
+                <div class="card bg-light border-0">
+                    <div class="card-body p-3">
+                        <h6 class="d-flex align-items-center">
+                            <i class="fas fa-lightbulb text-warning me-2"></i>
+                            <span>Советы по работе</span>
+                        </h6>
+                        <ul class="mb-0 ps-3 small">
+                            <li>Заказы клиента помещаются в общую ячейку</li>
+                            <li>При заполнении ячейки система автоматически назначит новую</li>
+                            <li>Используйте сочетания клавиш для быстрой работы:</li>
+                        </ul>
+                        <div class="d-flex justify-content-between mt-2 small bg-white p-2 rounded">
+                            <span><span class="keyboard-shortcut">Alt+N</span> Новый заказ</span>
+                            <span><span class="keyboard-shortcut">Alt+S</span> Сканер</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Storage visualization link -->
+                <div class="d-grid mt-3">
+                    <a href="{% url 'storage_visualization' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-th me-2"></i>Карта всех ячеек
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Activity Feed -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="fas fa-list-alt text-success me-2"></i>Недавняя активность</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush recent-activity">
+                    {% for order in recent_orders|slice:":8" %}
+                    <div class="list-group-item border-0">
+                        <div class="activity-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">Принят заказ #{{ order.order_id }}</h6>
+                                <small>{{ order.received_at|date:"H:i" }}</small>
+                            </div>
+                            <p class="mb-1 text-truncate">{{ order.name }}</p>
+                            <small class="d-flex justify-content-between">
+                                <span>{{ order.customer.name|truncatechars:25 }}</span>
+                                <span class="badge bg-secondary">Ячейка {{ order.storage_cell.number }}</span>
+                            </small>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="list-group-item text-center py-4 text-muted">
+                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                        <p class="mb-0">Нет данных об активности</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Toggle between manual input and scanner
@@ -507,8 +578,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const loadMoreBtn = document.getElementById('load-more-btn');
     if (loadMoreBtn) {
         loadMoreBtn.addEventListener('click', function() {
-            // Would implement loading more orders via AJAX
-            alert('В реальной реализации здесь будет подгрузка дополнительных заказов через AJAX');
+            const hiddenRows = document.querySelectorAll('#recent-orders-table tbody tr.d-none');
+            hiddenRows.forEach(row => {
+                row.classList.remove('d-none');
+            });
+            this.style.display = 'none';
         });
     }
     
@@ -543,17 +617,59 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const rows = table.querySelectorAll('tbody tr');
         const lowerQuery = query.toLowerCase();
+        let matchCount = 0;
         
         rows.forEach(row => {
             const text = row.textContent.toLowerCase();
             if (text.includes(lowerQuery)) {
                 row.style.display = '';
+                matchCount++;
             } else {
                 row.style.display = 'none';
             }
         });
+        
+        // Show/hide no results message
+        let noResultsEl = table.parentNode.querySelector('.no-results-message');
+        if (matchCount === 0) {
+            if (!noResultsEl) {
+                noResultsEl = document.createElement('div');
+                noResultsEl.className = 'no-results-message text-center py-3 text-muted';
+                noResultsEl.innerHTML = '<i class="fas fa-search me-2"></i>Нет результатов по запросу: "' + query + '"';
+                table.parentNode.appendChild(noResultsEl);
+            }
+        } else if (noResultsEl) {
+            noResultsEl.remove();
+        }
     }
+    
+    // Make table rows clickable for pending orders
+    const pendingRows = document.querySelectorAll('#pending-orders-table tbody tr');
+    pendingRows.forEach(row => {
+        row.addEventListener('click', function(e) {
+            // Don't trigger on button clicks
+            if (e.target.tagName === 'BUTTON' || e.target.closest('button') || 
+                e.target.tagName === 'A' || e.target.closest('a')) {
+                return;
+            }
+            
+            // Find the form in this row and submit it
+            const form = this.querySelector('form');
+            if (form) form.submit();
+        });
+        
+        // Add pointer cursor to show it's clickable
+        row.style.cursor = 'pointer';
+    });
+    
+    // Automatically dismiss alerts after 5 seconds
+    const alerts = document.querySelectorAll('.alert:not(.alert-info)');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }, 5000);
+    });
 });
 </script>
-{% endblock %}
 {% endblock %}
