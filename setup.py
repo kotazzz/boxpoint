@@ -3,7 +3,6 @@
 Box Point setup script - initializes database and creates necessary data
 """
 import os
-import sys
 import django
 
 # Setup Django
