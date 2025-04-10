@@ -447,19 +447,22 @@ class PickupCancelView(UpdateView):
     fields = []
     
     def get_object(self, queryset=None):
-        # Получаем ID клиента из URL
+        # Get customer ID from URL
         customer_id = self.kwargs.get('pk')
-        # Получаем активную сессию выдачи для этого клиента
+        
+        # First try to find an active session
         try:
             session = PickupSession.objects.get(customer_id=customer_id, is_active=True)
             return session
         except PickupSession.DoesNotExist:
-            # If no active session, try to get any session for this customer
+            # If no active session, get the latest session by started_at timestamp
             try:
-                session = PickupSession.objects.filter(customer_id=customer_id).latest('started_at')
-                return session
+                sessions = PickupSession.objects.filter(customer_id=customer_id).order_by('-started_at')
+                if sessions.exists():
+                    return sessions[0]  # Get the newest session
+                raise PickupSession.DoesNotExist("No sessions found")
             except PickupSession.DoesNotExist:
-                raise Http404("Не найдена активная сессия выдачи для этого клиента.")
+                raise Http404("No pickup session found for this customer.")
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -498,10 +501,9 @@ class PickupCancelView(UpdateView):
             status='pending'
         ).update(is_under_inspection=False)
         
-        # Mark session as inactive
-        session.is_active = False
-        session.completed_at = timezone.now()
-        session.save()
+        # Use the cancel method from the model instead of manually updating fields
+        # This properly handles the cancellation logic
+        session.cancel(reason)
         
         messages.success(request, f'Выдача для клиента {session.customer.name} отменена. Причина: {reason}')
         return redirect('home')
@@ -830,13 +832,9 @@ class StorageVisualizationView(TemplateView):
         context['search_query'] = search_query
         
         # Предзагружаем связанные заказы для снижения количества запросов к БД
-        # Фильтруем только заказы со статусом 'pending' и reception_status='received'
-        cells = cells.prefetch_related(
-            models.Prefetch('orders', queryset=Order.objects.filter(
-                status='pending', 
-                reception_status='received'
-            ))
-        )
+        # Убедимся, что мы предварительно загружаем все заказы, а затем отфильтруем их в шаблоне
+        # или с помощью аннотации, поскольку filter в prefetch не работает согласно ожиданиям
+        cells = cells.prefetch_related('orders')
         
         return context
 

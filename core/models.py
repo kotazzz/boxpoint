@@ -19,18 +19,25 @@ class Customer(models.Model):
     
     def get_pending_orders(self):
         """Return orders ready for pickup"""
-        return self.orders.filter(
-            status='pending',
-            reception_status='received'
-        )
+        if hasattr(self, 'orders'):
+            return self.orders.filter(
+                status='pending',
+                reception_status='received'
+            )
+        return Order.objects.none()
         
     def get_total_orders_count(self):
         """Return the total count of all customer orders"""
-        return self.orders.count()
-    
+        if hasattr(self, 'orders'):
+            return self.orders.count()
+        return 0 # Return 0 if accessed before orders relation is established
+
     def has_active_pickup_session(self):
         """Check if customer has an active pickup session"""
-        return self.pickup_sessions.filter(is_active=True).exists()
+        if hasattr(self, 'pickup_sessions'):
+            return self.pickup_sessions.filter(is_active=True).exists()
+        return False
+
     
     class Meta:
         verbose_name = "Клиент"
@@ -241,6 +248,7 @@ class PickupSession(models.Model):
     is_active = models.BooleanField(default=True, verbose_name="Активна")
     is_cancelled = models.BooleanField(default=False, verbose_name="Отменена")
     cancel_reason = models.TextField(blank=True, null=True, verbose_name="Причина отмены")
+    notes = models.TextField(blank=True, null=True, verbose_name="Примечания") # Add notes field
     
     def __str__(self):
         if self.is_cancelled:
