@@ -1,62 +1,63 @@
 {% extends 'core/base.html' %}
+{% load math_filters %}
 
 {% block title %}Box Point - Главная{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
+<div class="row mb-3">
     <div class="col-md-12">
         <div class="card bg-primary text-white">
-            <div class="card-body">
-                <h1 class="mb-0"><i class="fas fa-home"></i> Панель управления</h1>
+            <div class="card-body py-2">
+                <h2 class="mb-0"><i class="fas fa-home"></i> Панель управления</h2>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Статистика склада -->
-<div class="row mb-4">
-    <div class="col-md-3 col-sm-6 mb-3">
-        <div class="stats-card bg-primary-gradient">
-            <i class="fas fa-boxes fa-2x mb-3"></i>
+<div class="row mb-3">
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="stats-card bg-primary-gradient py-2">
+            <i class="fas fa-boxes fa-2x mb-2"></i>
             <h3>{{ total_cells_count }}</h3>
-            <p>Всего ячеек</p>
+            <p class="mb-0">Всего ячеек</p>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 mb-3">
-        <div class="stats-card bg-success-gradient">
-            <i class="fas fa-box-open fa-2x mb-3"></i>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="stats-card bg-success-gradient py-2">
+            <i class="fas fa-box-open fa-2x mb-2"></i>
             <h3>{{ free_cells_count }}</h3>
-            <p>Свободно ячеек</p>
+            <p class="mb-0">Свободно ячеек</p>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 mb-3">
-        <div class="stats-card bg-warning-gradient">
-            <i class="fas fa-warehouse fa-2x mb-3"></i>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="stats-card bg-warning-gradient py-2">
+            <i class="fas fa-warehouse fa-2x mb-2"></i>
             <h3>{{ occupied_cells_count }}</h3>
-            <p>Занято ячеек</p>
+            <p class="mb-0">Занято ячеек</p>
         </div>
     </div>
-    <div class="col-md-3 col-sm-6 mb-3">
-        <div class="stats-card bg-danger-gradient">
-            <i class="fas fa-truck-loading fa-2x mb-3"></i>
+    <div class="col-md-3 col-sm-6 mb-2">
+        <div class="stats-card bg-danger-gradient py-2">
+            <i class="fas fa-truck-loading fa-2x mb-2"></i>
             <h3>{{ total_pending_orders }}</h3>
-            <p>Товаров к приёмке</p>
+            <p class="mb-0">Товаров к приёмке</p>
         </div>
     </div>
 </div>
 
 <!-- Визуальный индикатор загрузки склада -->
-<div class="row mb-4">
+<div class="row mb-3">
     <div class="col-md-12">
         <div class="card">
-            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+            <div class="card-header bg-info text-white py-2 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i> Загруженность склада</h5>
                 <a href="{% url 'storage_visualization' %}" class="btn btn-sm btn-light">Подробнее</a>
             </div>
-            <div class="card-body">
-                <div class="progress" style="height: 25px;">
+            <div class="card-body py-2">
+                <div class="progress" style="height: 20px;">
                     {% if total_cells_count > 0 %}
-                    {% with percentage=occupied_cells_count|floatformat:0|default:0|add:0 %}
+                    {% with percentage=occupied_cells_count|multiply:100|divide:total_cells_count|floatformat:0 %}
                     <div class="progress-bar bg-success" role="progressbar" style="width: {{ percentage }}%;" 
                          aria-valuenow="{{ percentage }}" aria-valuemin="0" aria-valuemax="100">
                         {{ percentage }}% занято
@@ -69,22 +70,22 @@
                     {% endif %}
                 </div>
                 
-                <div class="row mt-3">
+                <div class="row mt-2">
                     <div class="col-md-4">
-                        <div class="d-flex align-items-center">
-                            <div class="bg-success p-2 me-2" style="width: 20px; height: 20px; border-radius: 3px;"></div>
+                        <div class="d-flex align-items-center small">
+                            <div class="bg-success p-1 me-2" style="width: 15px; height: 15px; border-radius: 3px;"></div>
                             <span>Свободно: {{ free_cells_count }} ячеек</span>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="d-flex align-items-center">
-                            <div class="bg-warning p-2 me-2" style="width: 20px; height: 20px; border-radius: 3px;"></div>
+                        <div class="d-flex align-items-center small">
+                            <div class="bg-warning p-1 me-2" style="width: 15px; height: 15px; border-radius: 3px;"></div>
                             <span>Занято: {{ occupied_cells_count }} ячеек</span>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div class="d-flex align-items-center">
-                            <div class="bg-danger p-2 me-2" style="width: 20px; height: 20px; border-radius: 3px;"></div>
+                        <div class="d-flex align-items-center small">
+                            <div class="bg-danger p-1 me-2" style="width: 15px; height: 15px; border-radius: 3px;"></div>
                             <span>Требуют приемки: {{ total_pending_orders }}</span>
                         </div>
                     </div>
@@ -94,36 +95,36 @@
     </div>
 </div>
 
-<div class="row mb-4">
+<div class="row mb-3">
     <!-- Быстрые действия -->
-    <div class="col-lg-6 col-md-12 mb-4">
+    <div class="col-lg-6 col-md-12 mb-3">
         <div class="card h-100">
-            <div class="card-header bg-success text-white">
+            <div class="card-header bg-success text-white py-2">
                 <h5 class="mb-0"><i class="fas fa-bolt me-2"></i> Быстрые действия</h5>
             </div>
-            <div class="card-body">
-                <div class="row g-3">
+            <div class="card-body py-2">
+                <div class="row g-2">
                     <div class="col-sm-6">
-                        <a href="{% url 'customer_search' %}" class="btn btn-primary w-100 p-3">
-                            <i class="fas fa-user-plus fa-2x mb-2"></i><br>
+                        <a href="{% url 'customer_search' %}" class="btn btn-primary w-100 py-2">
+                            <i class="fas fa-user-plus fa-lg me-2"></i>
                             Новая выдача
                         </a>
                     </div>
                     <div class="col-sm-6">
-                        <a href="{% url 'order_receiving' %}" class="btn btn-success w-100 p-3">
-                            <i class="fas fa-truck-loading fa-2x mb-2"></i><br>
+                        <a href="{% url 'order_receiving' %}" class="btn btn-success w-100 py-2">
+                            <i class="fas fa-truck-loading fa-lg me-2"></i>
                             Прием заказов
                         </a>
                     </div>
                     <div class="col-sm-6">
-                        <a href="{% url 'order_search' %}" class="btn btn-info w-100 p-3">
-                            <i class="fas fa-search fa-2x mb-2"></i><br>
+                        <a href="{% url 'order_search' %}" class="btn btn-info w-100 py-2">
+                            <i class="fas fa-search fa-lg me-2"></i>
                             Поиск заказа
                         </a>
                     </div>
                     <div class="col-sm-6">
-                        <a href="{% url 'storage_visualization' %}" class="btn btn-secondary w-100 p-3">
-                            <i class="fas fa-sitemap fa-2x mb-2"></i><br>
+                        <a href="{% url 'storage_visualization' %}" class="btn btn-secondary w-100 py-2">
+                            <i class="fas fa-sitemap fa-lg me-2"></i>
                             Карта ячеек
                         </a>
                     </div>
@@ -133,22 +134,22 @@
     </div>
     
     <!-- Справка -->
-    <div class="col-lg-6 col-md-12 mb-4">
+    <div class="col-lg-6 col-md-12 mb-3">
         <div class="card h-100">
-            <div class="card-header bg-secondary text-white">
+            <div class="card-header bg-secondary text-white py-2">
                 <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i> Подсказки по работе</h5>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 <div class="accordion" id="helpAccordion">
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="headingOne">
-                            <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
+                            <button class="accordion-button py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne">
                                 <i class="fas fa-box-open me-2"></i> Прием заказа
                             </button>
                         </h2>
                         <div id="collapseOne" class="accordion-collapse collapse show" data-bs-parent="#helpAccordion">
-                            <div class="accordion-body">
-                                <ol class="mb-0">
+                            <div class="accordion-body py-2">
+                                <ol class="mb-0 ps-3 small">
                                     <li>Откройте страницу "Прием заказов"</li>
                                     <li>Введите ID заказа в форме</li>
                                     <li>Система автоматически определит клиента и найдет свободную ячейку</li>
@@ -158,13 +159,13 @@
                     </div>
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="headingTwo">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
+                            <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo">
                                 <i class="fas fa-user me-2"></i> Выдача заказа
                             </button>
                         </h2>
                         <div id="collapseTwo" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
-                            <div class="accordion-body">
-                                <ol class="mb-0">
+                            <div class="accordion-body py-2">
+                                <ol class="mb-0 ps-3 small">
                                     <li>Найдите клиента по ID или имени</li>
                                     <li>Выберите заказы для выдачи или возврата</li>
                                     <li>При необходимости добавьте пакет</li>
@@ -175,13 +176,13 @@
                     </div>
                     <div class="accordion-item">
                         <h2 class="accordion-header" id="headingThree">
-                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
+                            <button class="accordion-button collapsed py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree">
                                 <i class="fas fa-exchange-alt me-2"></i> Процесс возврата
                             </button>
                         </h2>
                         <div id="collapseThree" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
-                            <div class="accordion-body">
-                                <ol class="mb-0">
+                            <div class="accordion-body py-2">
+                                <ol class="mb-0 ps-3 small">
                                     <li>На странице заказов клиента нажмите "Отметить на возврат"</li>
                                     <li>Выберите причину возврата и добавьте комментарии</li>
                                     <li>Завершите процесс выдачи для оформления возврата</li>
@@ -197,15 +198,15 @@
 
 <div class="row">
     <div class="col-md-12">
-        <div class="card mb-4">
-            <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+        <div class="card mb-3">
+            <div class="card-header bg-warning text-dark py-2 d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fas fa-user-clock me-2"></i> Активные выдачи</h5>
                 <span class="badge bg-dark">{{ active_sessions|length }}</span>
             </div>
-            <div class="card-body">
+            <div class="card-body p-0">
                 {% if active_sessions %}
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle">
+                        <table class="table table-hover align-middle table-sm mb-0">
                             <thead>
                                 <tr>
                                     <th>ID</th>
@@ -223,7 +224,7 @@
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <div class="rounded-circle bg-primary text-white text-center me-2" 
-                                                 style="width: 32px; height: 32px; line-height: 32px;">
+                                                 style="width: 26px; height: 26px; line-height: 26px; font-size: 0.8rem;">
                                                 {{ session.customer.name|slice:":1" }}
                                             </div>
                                             <div>{{ session.customer.name }}</div>
@@ -241,11 +242,11 @@
                                         <i class="far fa-clock me-1"></i> {{ session.started_at|timesince }} назад
                                     </td>
                                     <td class="text-center">
-                                        <a href="{% url 'pickup_process' pk=session.customer.id %}" class="btn btn-sm btn-primary me-1" 
+                                        <a href="{% url 'pickup_process' pk=session.customer.id %}" class="btn btn-sm btn-primary me-1 py-0 px-1" 
                                            title="Продолжить выдачу" data-bs-toggle="tooltip">
                                             <i class="fas fa-arrow-right"></i><span class="d-none d-lg-inline ms-1">Продолжить</span>
                                         </a>
-                                        <a href="{% url 'pickup_close' pk=session.pk %}" class="btn btn-sm btn-warning" 
+                                        <a href="{% url 'pickup_close' pk=session.pk %}" class="btn btn-sm btn-warning py-0 px-1" 
                                            title="Закрыть сессию" data-bs-toggle="tooltip">
                                             <i class="fas fa-times-circle"></i><span class="d-none d-lg-inline ms-1">Закрыть</span>
                                         </a>
@@ -256,13 +257,13 @@
                         </table>
                     </div>
                 {% else %}
-                    <div class="text-center py-5">
-                        <div class="display-1 text-success mb-4">
+                    <div class="text-center py-3">
+                        <div class="display-4 text-success mb-3">
                             <i class="far fa-check-circle"></i>
                         </div>
-                        <h4 class="text-muted mb-3">Активных выдач нет</h4>
-                        <p class="text-muted mb-4">Все клиенты обслужены</p>
-                        <a href="{% url 'customer_search' %}" class="btn btn-primary">
+                        <h5 class="text-muted mb-2">Активных выдач нет</h5>
+                        <p class="text-muted mb-3">Все клиенты обслужены</p>
+                        <a href="{% url 'customer_search' %}" class="btn btn-primary btn-sm">
                             <i class="fas fa-plus-circle me-2"></i>Начать новую выдачу
                         </a>
                     </div>

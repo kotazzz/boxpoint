@@ -1,5 +1,6 @@
 {% extends 'core/base.html' %}
 {% load django_bootstrap5 %}
+{% load math_filters %}
 
 {% block title %}Визуализация склада - Box Point{% endblock %}
 
@@ -134,7 +135,7 @@
                     <div class="card-body p-3">
                         <div class="progress" style="height: 25px;">
                             {% if total_cells_count > 0 %}
-                            {% with free_percent=free_cells_count|floatformat:0 occupied_percent=occupied_cells_count|floatformat:0 %}
+                            {% with free_percent=free_cells_count|multiply:100|divide:total_cells_count|floatformat:0 occupied_percent=occupied_cells_count|multiply:100|divide:total_cells_count|floatformat:0 %}
                             <div class="progress-bar bg-success" role="progressbar" 
                                  style="width: {% widthratio free_cells_count total_cells_count 100 %}%;" 
                                  aria-valuenow="{{ free_percent }}" aria-valuemin="0" aria-valuemax="100">
