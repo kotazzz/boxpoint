@@ -9,6 +9,8 @@ from faker import Faker
 import random
 from datetime import timedelta
 
+from core.data import generate_product
+
 from .models import (
     Customer,
     StorageCell,
@@ -584,32 +586,19 @@ class SystemView(TemplateView):
         faker = Faker('ru_RU')
         customers = list(Customer.objects.all())
         
-        # Generate some predefined product data
-        products = [
-            {'name': 'Смартфон Samsung Galaxy S23', 'sizes': ['128GB', '256GB'], 'colors': ['Черный', 'Белый', 'Синий']},
-            {'name': 'Ноутбук HP Pavilion', 'sizes': ['14"', '15.6"'], 'colors': ['Серебристый', 'Черный']},
-            {'name': 'Кроссовки Nike Air Max', 'sizes': ['39', '40', '41', '42', '43'], 'colors': ['Черные', 'Белые', 'Красные']},
-            {'name': 'Платье летнее', 'sizes': ['XS', 'S', 'M', 'L', 'XL'], 'colors': ['Синее', 'Черное', 'Красное', 'Зеленое']},
-            {'name': 'Наушники JBL Tune', 'sizes': ['One size'], 'colors': ['Черные', 'Белые', 'Красные']},
-            {'name': 'Книга "Мастер и Маргарита"', 'sizes': ['Твердый переплет'], 'colors': ['Стандарт']},
-            {'name': 'Часы Casio', 'sizes': ['40 мм', '44 мм'], 'colors': ['Серебристый', 'Золотой', 'Черный']},
-            {'name': 'Утюг Philips', 'sizes': ['Стандарт'], 'colors': ['Голубой', 'Белый']},
-            {'name': 'Фен Rowenta', 'sizes': ['1800W', '2100W'], 'colors': ['Черный', 'Розовый']},
-            {'name': 'Игрушка мягкая "Медведь"', 'sizes': ['Маленький', 'Средний', 'Большой'], 'colors': ['Коричневый', 'Белый']},
-        ]
         
         for _ in range(count):
             customer = random.choice(customers)
-            product = random.choice(products)
+            name, size, color, price_low, price_max = generate_product()
             
             # Create order with pending reception status and no cell assignment
             Order.objects.create(
-                name=product['name'],
+                name=name,
                 customer=customer,
                 description=faker.text(max_nb_chars=100),
-                size=random.choice(product['sizes']),
-                color=random.choice(product['colors']),
-                price=round(random.uniform(500, 15000), 2),
+                size=size,
+                color=color,
+                price=round(random.uniform(price_low, price_max), 2),
                 payment_status=random.choice(['prepaid', 'postpaid']),
                 status='pending',
                 reception_status='pending',  # All orders are now pending reception
@@ -619,35 +608,40 @@ class SystemView(TemplateView):
             )
     
     def _generate_cells(self, count):
-        # Prevent creating more than 50 cells total
-        existing_count = StorageCell.objects.count()
-        if (existing_count >= 50):
-            return 0  # Return 0 cells created
-        
-        # Limit the count to not exceed 50 total cells
-        if (existing_count + count > 50):
-            count = 50 - existing_count
-            
-        # Get existing cell numbers to avoid duplicates
+        # Получаем существующие номера ячеек, чтобы избежать дубликатов
         existing_numbers = set(StorageCell.objects.values_list('number', flat=True))
         
-        # Create cells with different section prefixes
+        # Создаем ячейки с разными префиксами секций
         sections = ['A', 'B', 'C', 'D', 'E']
         cells_created = 0
         
-        for section in sections:
-            for i in range(1, 50):  # Try numbers 1-49 in each section
-                if (cells_created >= count):
-                    break
-                    
-                number = f"{section}{i:03d}"
-                if (number not in existing_numbers):
-                    StorageCell.objects.create(
-                        number=number,
-                        is_occupied=False
-                    )
-                    existing_numbers.add(number)
-                    cells_created += 1
+        # Вычисляем сколько ячеек на каждую секцию
+        cells_per_section = 50
+        section_index = 0
+        
+        for i in range(1, 500):  # Увеличиваем диапазон до 500
+            if cells_created >= count:
+                break
+                
+            # Определяем текущую секцию
+            current_section = sections[section_index]
+            
+            # Формируем номер ячейки
+            number = f"{current_section}{i:03d}"
+            
+            if number not in existing_numbers:
+                StorageCell.objects.create(
+                    number=number,
+                    is_occupied=False
+                )
+                existing_numbers.add(number)
+                cells_created += 1
+                
+                # Переходим к следующей секции каждые cells_per_section ячеек
+                if cells_created % cells_per_section == 0:
+                    section_index = (section_index + 1) % len(sections)
+                    # Сбрасываем счетчик i для новой секции
+                    i = 0
         
         return cells_created
     
